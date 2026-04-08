@@ -1,0 +1,18 @@
+# 用户产出（整目录不提交）
+outputs/
+disclosures/
+*.tmp
+~$*
+
+# Python / tools
+tools/node_modules/
+__pycache__/
+*.py[cod]
+.pyo
+.venv/
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db

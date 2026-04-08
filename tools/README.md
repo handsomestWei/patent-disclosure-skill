@@ -1,0 +1,229 @@
+# tools / 可选脚本
+
+本目录存放**可重复执行的辅助脚本**。技能主流程以 `SKILL.md` 与 `prompts/` 为准；本目录侧重格式转换等可执行工具。
+
+## Office 文档（Word / PPT）转成可扫描文本：谁先谁后
+
+1. **优先（外部）**：若 IDE / Agent 已接入 **[MiniMax-AI/skills](https://github.com/MiniMax-AI/skills)** 中的 **`minimax-docx`**、**`pptx-generator`** 等 Office 相关技能，应用其读取或导出能力生成可供 `Read` 的 Markdown/文本，再扫描。依赖与安装以上游仓库为准（如部分组件需 .NET / Node.js）。
+2. **备选（本目录脚本）**：未使用上述外部技能时，用本仓库 **`docx_to_md.py`**、**`pptx_to_md.py`**（纯 Python + `requirements.txt`），见下文各节。
+
+## mermaid_render.py — mermaid：图示 → PNG + 定稿 Markdown + **默认生成 Word**
+
+将 fenced **mermaid**（`` ```mermaid`` ``）逐块交给 **`mmdc`** 渲染为 PNG；输出 `.md` 中为 ``mermaid_figures/fig_001.png`` 等引用，供 **`md_to_docx.py`** 嵌入 Word。**3.2 系统框图**与 **3.4 流程图**均用 mermaid（`flowchart` / `subgraph` 等），交底书正文**不再**要求单独的文字框图或 PlantUML。
+
+**生图失败降级**：某一围栏 `mmdc` 失败时**不中断**——该处**保留**原 `` ```mermaid`` … `` ``` `` 源码；其余块照常出图。仍写出定稿 `.md`，并**照常尝试**生成 Word（未出图块在 Word 中为 **Consolas 代码块**，与 `md_to_docx` 行为一致）。
+
+### 依赖：mermaid（须 Node.js + `mmdc`）
+
+| 方式 | 安装 | 说明 |
+|------|------|------|
+| **本地 npm（推荐）** | **Node.js** + 本目录 `npm install`（见 `package.json`） | 优先使用 `tools/node_modules/.bin/mmdc`，避免每次 npx 拉包 |
+| **npx** | 未执行 `npm install` 时由脚本调用 `npx -y @mermaid-js/mermaid-cli mmdc` | 首次可能较慢 |
+| **全局 npm** | `npm install -g @mermaid-js/mermaid-cli` | 提供 **PATH** 上的 `mmdc` |
+
+mermaid 脚本按顺序查找：`tools/node_modules/.bin/mmdc` → **PATH** 上的 `mmdc` → `npx`。
+
+生成 Word 仍需：`pip install -r requirements.txt`（与上表无关）。
+
+**npm 推荐（本地 CLI）**：
+
+```bash
+cd tools
+npm install
+```
+
+`package.json` 已包含 **`puppeteer`**（`@mermaid-js/mermaid-cli` 的 peer）。**Puppeteer 23+** 可能不会在 `npm install` 时自动下载浏览器；若自检或 `mmdc` 报错 **Could not find Chrome**，在 **`tools/`** 再执行：
+
+```bash
+npx puppeteer browsers install chrome-headless-shell
+```
+
+（或按报错提示选用 `chrome` 等；详见 [Puppeteer 文档](https://pptr.dev/)。）
+
+### mermaid CLI 与手动试转
+
+**`mermaid_render.py` 与 11.x 一致**：调用的是官方 **`mmdc -i <.mmd> -o <.png> -b white`**（本地则用 `tools/node_modules/.bin/mmdc`）。  
+若某处写的是 `npx -y @mermaid-js/mermaid-cli -i …`，**少了子命令 `mmdc`**，参数会错位；正确示例：
+
+```bash
+npx -y @mermaid-js/mermaid-cli mmdc -i sample.mmd -o sample.png -b white
+```
+
+可自建极简 `sample.mmd`（如一行 `flowchart LR; A-->B`）试转；能出 PNG 则说明 **mmdc + Chrome** 正常，否则按上文安装 **`puppeteer` 浏览器**。
+
+### 用法
+
+```bash
+# 写出定稿 .md，并在同目录生成同名 .docx（默认）；-o 须为「案件名_YYYYMMDDHHmmss.md」（见 prompts/disclosure_builder.md §7.3 第 5 点）
+python3 tools/mermaid_render.py -i draft.md -o "一种XXX方法及系统_20260408143025.md"
+
+# 指定 .docx 路径（.md 主名仍须含时间戳）
+python3 tools/mermaid_render.py -i draft.md -o out/一种XXX方法及系统_20260408143025.md --docx out/一种XXX方法及系统_20260408143025.docx
+
+# 仅 Markdown，不要 Word
+python3 tools/mermaid_render.py -i draft.md -o "一种XXX方法及系统_20260408143025.md" --no-docx
+
+# 指定 mermaid 图片子目录（相对输出 .md）
+python3 tools/mermaid_render.py -i draft.md -o out/一种XXX方法及系统_20260408143025.md --assets-dir figures/mermaid
+```
+
+**Word 生成失败**（缺依赖、版式报错等）时：脚本仍以退出码 **0** 结束（Markdown 已成功）；stderr 会打印 **`md_to_docx.py` 的手动命令**，请复制执行。
+
+Windows 上若仅装 Node 未执行 `npm install`，脚本会通过 `npx -y @mermaid-js/mermaid-cli mmdc` 调用（首次可能较慢）。
+
+### 与交底书约定
+
+- 技能要求定稿**同时**交付 **Markdown + Word**，且 **`-o` 主文件名须含 `_{YYYYMMDDHHmmss}`**（`prompts/disclosure_builder.md` §7.3 第 5 点，含首次定稿）；**3.2 系统框图**与 **3.4 流程图**均用 fenced mermaid，**不要** ASCII 文字流程图或框图。
+- 交付代理人前：运行 `mermaid_render.py` 一步即可（默认再调 `md_to_docx.py`）；若 Word 失败，按 stderr 提示手动执行 `md_to_docx.py`。
+
+---
+
+## md_to_docx.py — Markdown → Word
+
+将交底书 Markdown 转为 `.docx`，**`#`–`######` 映射为 Word 内置「标题 1」–「标题 9」**，正文为宋体 10.5pt，代码块为 Consolas，便于交给代理人或所内用 Word 修订。
+
+**图示**：定稿应用 **`mermaid_render.py`** 将 mermaid 转为 PNG；若个别块生图失败被降级保留围栏，本脚本会将**仍存在的** `` ```mermaid`` 块按**代码块**写入 Word。本脚本不调用 `mmdc`。
+
+### 依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+依赖为 `python-docx`（见仓库根目录 `requirements.txt`）。
+
+### 用法
+
+```bash
+python3 tools/md_to_docx.py --input path/to/交底书.md --output path/to/交底书.docx
+```
+
+图片 `![](相对路径.png)`：默认相对 **Markdown 文件所在目录**；也可指定根目录：
+
+```bash
+python3 tools/md_to_docx.py -i ./outputs/case/disclosure.md -o ./outputs/case/disclosure.docx --base-dir ./outputs/case
+```
+
+在 Claude Code 中可将 `tools` 换为 `${CLAUDE_SKILL_DIR}/tools`。
+
+### 支持的 Markdown 子集
+
+| 元素 | 行为 |
+|------|------|
+| `#`–`######` | Word 标题 1–9 |
+| 段落 | 宋体正文，支持 `**粗体**`、`` `行内代码` ``；**相邻非空行（中间无空行）各自成段**，「（1）…（2）…」会分行显示 |
+| `-` / `*` 列表 | 项目符号列表 |
+| `1.` 列表 | 编号列表 |
+| ` ``` ` 围栏 | 等宽代码块 |
+| `\| 表格 \|` | 简单表格（Table Grid） |
+| `> ` | 左缩进引用 |
+| `---` 等 | 浅色分隔线 |
+| `![](path)` | 嵌入图片（路径需存在） |
+
+**未完整支持**：复杂嵌套列表、HTML 块、**未预渲染的** mermaid 围栏（仍为代码块）、脚注、任务列表等。定稿前请运行 **`mermaid_render.py`**；若仅用外部工具导出 PNG，可直接写 `![](...)`。
+
+### 版式说明（md_to_docx）
+
+- 不同语言 Word 中「标题 1」显示名可能为「Heading 1」或「标题 1」，样式仍为大纲级别标题，可用导航窗格与目录域。
+- 若需所内固定模版（页眉、首页不同），可在本脚本生成后套用单位 `.dotx`，或后续扩展 `python-docx` 打开模版再写入。
+
+---
+
+## iteration_dialog_log.py — 修订对话记录（迭代用）
+
+每轮 **`merger.md` / `correction_handler.md`** 交付后，在**案件目录**追加一条 **`交底书修订对话记录.md`**：含**本地时间与 UTC**、用户说明摘要、本轮交付文件名、合并/纠正摘要摘录。规则见 **`prompts/iteration_context.md`**。
+
+**依赖**：仅标准库。
+
+```bash
+python3 tools/iteration_dialog_log.py --case-dir outputs/某案件 --kind merge \
+  --user "补充了调度装置资料，合并进第三章" \
+  --summary "已扩写 3.4，并更新实施例；未改保护点表述。" \
+  --artifacts "一种XXX方法及系统_20260408143025.md,一种XXX方法及系统_20260408143025.docx"
+```
+
+- `--kind`：`merge` 或 `correct`。  
+- `--log-name`：可选，默认 `交底书修订对话记录.md`；英文环境可改用 `disclosure_revision_log.md`。  
+- 无法执行脚本时，由 Agent 按同结构手工追加。
+
+---
+
+## docx_to_md.py — Word → Markdown + 抽取图片（备选）
+
+将 **.docx**（Word / WPS 等另存为 docx）转为 **Markdown**，并把文档内嵌图片落到磁盘，便于 **`Read` 与 Step 2 扫描**（与直接读二进制 .docx 相比更稳）。**Step 2** 对扫描树内**每一个** `.docx` 都应执行转换（或等价外部技能）后再读产出 `.md`，见 `prompts/project_scan.md`。**若已用外部 MiniMax `minimax-docx` 完成等价抽取，可跳过本节。**
+
+### 依赖
+
+与 `md_to_docx` 共用根目录 `requirements.txt`（`python-docx` + **`mammoth`**）。
+
+```bash
+pip install -r requirements.txt
+```
+
+### 用法
+
+```bash
+python3 tools/docx_to_md.py --input path/to/设计说明.docx --output outputs/case/design.md
+```
+
+- 默认图片目录：`outputs/case/design_media/`，Markdown 内为相对路径 `![](design_media/img_0001.png)`。
+- 自定义图片目录：
+
+```bash
+python3 tools/docx_to_md.py -i ./raw/spec.docx -o ./knowledge/spec.md --media-dir ./knowledge/spec_assets
+```
+
+转换警告（如部分样式、WMF 图）会输出到 **stderr**，仍可能生成可用 `.md`。
+
+### 局限（mammoth）
+
+- 仅 **`.docx`**（OOXML）；老版 **`.doc`** 不支持。
+- **Markdown 输出在 mammoth 侧标记为 deprecated**，复杂排版可能弱于「先导出 HTML 再转 MD」；专利扫描一般足够。若版式崩坏，建议所内 **另存为 PDF 或纯文本** 再扫。
+- **WMF/EMF** 等 Windows 图元可能需单独处理（见 [mammoth WMF 配方](https://github.com/mwilliamson/python-mammoth)）。
+
+在 Claude Code 中可将 `tools` 换为 `${CLAUDE_SKILL_DIR}/tools`。Windows 无 `python3` 时用 `python`。
+
+---
+
+## pptx_to_md.py — PowerPoint → Markdown + 抽取图片（备选）
+
+将 **.pptx** / **.ppsx** 按**幻灯片页**导出为 Markdown，并抽取幻灯片中的**嵌入位图**（`PICTURE` 形状），便于 **`Read` 与 Step 2 扫描**。**Step 2** 对扫描树内**每一个** `.pptx` 均应转换（或等价外部技能）后再读 `.md`，见 `prompts/project_scan.md`。**若已用外部 MiniMax `pptx-generator`（等）完成等价导出，可跳过本节。**
+
+### 依赖
+
+根目录 `requirements.txt` 中的 **`python-pptx`**。
+
+```bash
+pip install -r requirements.txt
+```
+
+### 用法
+
+```bash
+python3 tools/pptx_to_md.py --input path/to/评审材料.pptx --output outputs/case/review.md
+```
+
+- 默认图片目录：`outputs/case/review_media/`，文件名形如 `slide03_img0001.png`。
+- 自定义图片目录：
+
+```bash
+python3 tools/pptx_to_md.py -i ./raw/deck.pptx -o ./knowledge/deck.md --media-dir ./knowledge/deck_media
+```
+
+每页输出二级标题 `## 第 N 页`，其后为该页形状中的**文本与表格**（简化为管道表）及图片引用；若存在**演讲者备注**，以「**备注**」小节附于该页末尾。
+
+### 局限（python-pptx）
+
+- 仅 **`.pptx` / `.ppsx`**（OOXML）；**`.ppt`** 不支持，请先另存。
+- **图表、SmartArt、嵌入 OLE** 等若未以普通图片形状存在，**不会**自动栅格化为 PNG；可先在 PowerPoint 中另存为图片或导出 PDF 作补充材料。
+- 文本按形状遍历顺序输出，与视觉阅读顺序可能略有差异。
+
+在 Claude Code 中可将 `tools` 换为 `${CLAUDE_SKILL_DIR}/tools`。Windows 无 `python3` 时用 `python`。
+
+---
+
+## 扩展其它脚本时
+
+- Word / PPT 转换依赖写在 `requirements.txt`。
+- 在 `SKILL.md`「工具与数据来源」表中增加一行调用说明。
+- 勿将密钥写入仓库；配置使用环境变量或用户主目录。
