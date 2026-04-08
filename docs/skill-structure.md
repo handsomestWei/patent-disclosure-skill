@@ -3,7 +3,7 @@
 ## 设计原则
 
 - **`SKILL.md`**：入口与编排；具体写法分散在 **`prompts/`**，由执行方在运行时用 **`Read`** 加载，避免单文件过长。
-- **`tools/`**：可选脚本扩展，与编排解耦。Word/PPT 转可扫描文本时，**可优先**使用用户另行安装的 [MiniMax-AI/skills](https://github.com/MiniMax-AI/skills) Office 子技能，**备选**为本仓库 `docx_to_md.py` / `pptx_to_md.py`（见 `SKILL.md`）。
+- **`tools/`**：可选脚本扩展，与编排解耦。Word/PPT 转可扫描文本时用本仓库 `docx_to_md.py` / `pptx_to_md.py`（见 `SKILL.md`）。
 - **`outputs/`**：整目录由 `.gitignore` 忽略；可随仓库提交的范例见 **`examples/`**。
 - **`examples/`**：随仓库提交的虚构**原材料**示例（如 `knowledge/`）；流程产出在 `outputs/`。
 

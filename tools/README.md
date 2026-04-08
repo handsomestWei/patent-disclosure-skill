@@ -2,10 +2,9 @@
 
 本目录存放**可重复执行的辅助脚本**。技能主流程以 `SKILL.md` 与 `prompts/` 为准；本目录侧重格式转换等可执行工具。
 
-## Office 文档（Word / PPT）转成可扫描文本：谁先谁后
+## Office 文档（Word / PPT）转成可扫描文本
 
-1. **优先（外部）**：若 IDE / Agent 已接入 **[MiniMax-AI/skills](https://github.com/MiniMax-AI/skills)** 中的 **`minimax-docx`**、**`pptx-generator`** 等 Office 相关技能，应用其读取或导出能力生成可供 `Read` 的 Markdown/文本，再扫描。依赖与安装以上游仓库为准（如部分组件需 .NET / Node.js）。
-2. **备选（本目录脚本）**：未使用上述外部技能时，用本仓库 **`docx_to_md.py`**、**`pptx_to_md.py`**（纯 Python + `requirements.txt`），见下文各节。
+用本仓库 **`docx_to_md.py`**、**`pptx_to_md.py`**（纯 Python + 仓库根目录 `requirements.txt`），见下文各节；与 `SKILL.md`「工具与数据来源」一致。
 
 ## mermaid_render.py — mermaid：图示 → PNG + 定稿 Markdown + **默认生成 Word**
 
@@ -148,9 +147,9 @@ python3 tools/iteration_dialog_log.py --case-dir outputs/某案件 --kind merge 
 
 ---
 
-## docx_to_md.py — Word → Markdown + 抽取图片（备选）
+## docx_to_md.py — Word → Markdown + 抽取图片
 
-将 **.docx**（Word / WPS 等另存为 docx）转为 **Markdown**，并把文档内嵌图片落到磁盘，便于 **`Read` 与 Step 2 扫描**（与直接读二进制 .docx 相比更稳）。**Step 2** 对扫描树内**每一个** `.docx` 都应执行转换（或等价外部技能）后再读产出 `.md`，见 `prompts/project_scan.md`。**若已用外部 MiniMax `minimax-docx` 完成等价抽取，可跳过本节。**
+将 **.docx**（Word / WPS 等另存为 docx）转为 **Markdown**，并把文档内嵌图片落到磁盘，便于 **`Read` 与 Step 2 扫描**（与直接读二进制 .docx 相比更稳）。**Step 2** 对扫描树内**每一个** `.docx` 都应先转换再读产出 `.md`，见 `prompts/project_scan.md`。
 
 ### 依赖
 
@@ -185,9 +184,9 @@ python3 tools/docx_to_md.py -i ./raw/spec.docx -o ./knowledge/spec.md --media-di
 
 ---
 
-## pptx_to_md.py — PowerPoint → Markdown + 抽取图片（备选）
+## pptx_to_md.py — PowerPoint → Markdown + 抽取图片
 
-将 **.pptx** / **.ppsx** 按**幻灯片页**导出为 Markdown，并抽取幻灯片中的**嵌入位图**（`PICTURE` 形状），便于 **`Read` 与 Step 2 扫描**。**Step 2** 对扫描树内**每一个** `.pptx` 均应转换（或等价外部技能）后再读 `.md`，见 `prompts/project_scan.md`。**若已用外部 MiniMax `pptx-generator`（等）完成等价导出，可跳过本节。**
+将 **.pptx** / **.ppsx** 按**幻灯片页**导出为 Markdown，并抽取幻灯片中的**嵌入位图**（`PICTURE` 形状），便于 **`Read` 与 Step 2 扫描**。**Step 2** 对扫描树内**每一个** `.pptx` 均应先转换再读 `.md`，见 `prompts/project_scan.md`。
 
 ### 依赖
 

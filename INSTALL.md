@@ -50,7 +50,7 @@ git clone <本仓库 URL> "$env:USERPROFILE\.cursor\skills\patent-disclosure-ski
 
 ### 与「仅打开文件夹」等价关系
 
-若未使用上述 `skills/` 布局，也可**直接用 Cursor 打开本仓库根目录**作为工作区；此时将 **`CLAUDE_SKILL_DIR`** 理解为「包含 `SKILL.md` 的目录」，prompts 路径为 `./prompts/*.md`，与 `SKILL.md` 正文说明一致。
+若未使用上述 `skills/` 布局，也可**直接用 Cursor 打开本仓库根目录**作为工作区；此时将 **`CLAUDE_SKILL_DIR`** 理解为「包含 `SKILL.md` 的目录」，prompts 路径为 `./prompts/*.md`，与 `SKILL.md` 示例命令中的 **`${CLAUDE_SKILL_DIR}`** 同义。
 
 为与 Claude Code 迁移一致，Cursor 也会扫描 **`~/.claude/skills/`**、项目内 **`.claude/skills/`** 等路径；详见 Cursor 官方文档与当前版本设置项。
 
@@ -65,7 +65,3 @@ pip install -r requirements.txt
 ```
 
 交底书定稿须同时产出 **.md + .docx**，且将 **mermaid**（**3.2 系统框图**与 **3.4 流程图**）经 **`tools/mermaid_render.py`** 转为 PNG 嵌入。**mermaid** 须 **Node.js**：在 **`tools/`** 执行 **`npm install`**（含 **`puppeteer`**）；若 **`mmdc`** 报找不到 Chrome，再执行 **`npx puppeteer browsers install chrome-headless-shell`**。详见 **`tools/README.md`**。
-
-## 可选：外部 MiniMax Office Skills（优先于上述转换脚本）
-
-若希望由 **[MiniMax-AI/skills](https://github.com/MiniMax-AI/skills)** 中的 **`minimax-docx`**、**`pptx-generator`** 等处理 Word/PPT 的读取与导出，请按上游 **`README_zh.md`** 在 Claude Code / Cursor 等环境中单独安装与配置 skills 路径。**本专利技能仓库不包含这些子技能**；配置成功后，`SKILL.md` 约定优先走外部能力，再走本仓库 `docx_to_md.py` / `pptx_to_md.py` 作为备选。

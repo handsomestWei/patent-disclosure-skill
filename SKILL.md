@@ -1,22 +1,20 @@
 ---
 name: patent-disclosure-skill
 description: "通用中国专利挖掘发现与交底书生成全流程：扫描项目文档挖掘专利点、讨论融合、基于脱敏模版生成技术交底书、联网查新、生成后自检含逻辑闭环与公式参数一致性。| Patent mining, disclosure drafting, prior-art search, and consistency self-check."
-version: "1.8.0"
+version: "1.8.1"
 user-invocable: true
 argument-hint: "[可选：项目路径或技术主题关键词]"
 allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 ---
 
-> **语言**：默认与用户语种一致。专利与法律术语采用行业常用表述。
-
-> **技能根目录**：在 Claude Code / OpenClaw 下通常为环境变量 **`CLAUDE_SKILL_DIR`**。在 Cursor 等场景直接打开本仓库时，将其理解为**包含本 `SKILL.md` 的目录**；下文路径 `${CLAUDE_SKILL_DIR}/prompts/...` 与相对路径 `prompts/...` 等价。
-
-> **图示定稿（Step 7）**：`tools/mermaid_render.py` 将 fenced **mermaid**（**3.2 系统框图**与 **3.4 流程图**）经本地 **`mmdc`**（**Node.js**：`tools/` 下 **`npm install`**，或 **`npx`** 拉取 **`@mermaid-js/mermaid-cli`**；亦可 **PATH** 上由 **`npm install -g`** 提供的 `mmdc`）转为 PNG，**默认**再生成同名 **.docx**。单块生图失败时**降级**保留该块 mermaid 源码并仍尝试 Word。正文**不**再要求文字框图或 PlantUML。细则见 **`tools/README.md`**。
-
 # 专利挖掘与交底书生成
 
-本技能指导完成：**专利点挖掘** → **查新与差异化** → **交底书生成** → **自检完善** 的全流程。  
-**分步细则不在本文件展开**，执行对应步骤前请用 **`Read`** 加载 `prompts/` 下同名模板。
+本技能覆盖 **专利点挖掘** → **查新与差异化** → **交底书生成** → **自检完善** 全流程；分步指令在 **`prompts/`**，每步执行前 **`Read`** 对应文件，与步骤的对照见「Prompt 文件映射」。
+
+## 环境与约定
+
+- **语言**：默认与用户语种一致；专利与法律术语采用行业常用表述。
+- **图示定稿（Step 7）**：**3.2**/**3.4** 用 fenced **mermaid**；执行方式、**`mmdc`** 安装与降级规则见下表「交底书定稿交付」行及 **`tools/README.md`**（正文不要求 ASCII 框图或 PlantUML）。
 
 ---
 
@@ -26,7 +24,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 
 - 明确提及：专利挖掘、专利点、技术交底书、交底书、专利交底书、查新、现有技术对比等
 - 斜杠或简短指令：如 `/patent-disclosure-skill`、`/patent-disclosure`、`/交底书`
-- **迭代模式（按意图识别）**：当用户意图明显是在**已有交底书或上一轮输出**上继续工作（如改章节、补实施例、补材料、修正参数/事实、调整表述等），**无需**用户写出「迭代」等固定词，也**不必**询问是否进入迭代——Agent 应 **`Read`** **`prompts/iteration_context.md`**，再 **`Read`** `prompts/merger.md`（侧重**新材料、扩展合并**）或 `prompts/correction_handler.md`（侧重**纠错、与事实或风格不符**），按文首门禁合并/纠正后**另存为新文件**：**`{案件名}_{YYYYMMDDHHmmss}.md`** 与同名 **`.docx`**（与首次定稿同一命名规则，见 **`disclosure_builder.md` §7.3 第 5 点**），**不覆盖**旧稿（除非用户明确要求）。**禁止**在迭代意图已成立时默认回到 Step 3–4 专利点全文分析（除非用户明确要求重新挖掘专利点）。对话中**已出现**交底书路径、附件或上文刚交付的草稿时，优先按迭代处理。
+- **迭代模式（按意图识别）**：当用户意图明显是在**已有交底书或上一轮输出**上继续工作（如改章节、补实施例、补材料、修正参数/事实、调整表述等），**无需**用户写出「迭代」等固定词，也**不必**询问是否进入迭代——Agent 应 **`Read`** **`prompts/iteration_context.md`**，再 **`Read`** `prompts/merger.md`（侧重**新材料、扩展合并**）或 `prompts/correction_handler.md`（侧重**纠错、与事实或风格不符**），**严格按该文件开头的「执行门禁」**（优先执行，不可跳过）**做完合并或纠正**，**另存为新文件**：**`{案件名}_{YYYYMMDDHHmmss}.md`** 与同名 **`.docx`**（与首次定稿同一命名规则，见 **`disclosure_builder.md` §7.3 第 5 点**），**不覆盖**旧稿（除非用户明确要求）。**禁止**在迭代意图已成立时默认回到 Step 3–4 专利点全文分析（除非用户明确要求重新挖掘专利点）。对话中**已出现**交底书路径、附件或上文刚交付的草稿时，优先按迭代处理。
 
 ---
 
@@ -34,18 +32,16 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 
 按任务选用能力；具体工具名称以当前 Agent 环境为准。
 
-### Office 原材料（Word / PowerPoint）提取顺序
+若扫描范围内含 **Word（.docx）** 或 **PowerPoint（.pptx）**，须在 Step 2 纳入阅读前用本仓库 **`docx_to_md.py`** / **`pptx_to_md.py`** 转为 Markdown；依赖 **`pip install -r requirements.txt`**，命令与说明见下表对应行。
 
-**本仓库不内置 MiniMax 技能**；若宿主已单独接入外部 **[MiniMax Skills（Office）](https://github.com/MiniMax-AI/skills)**，且当前对话可调起其中的 **`minimax-docx`**、**`pptx-generator`** 等子技能，**优先**用其完成结构化读取或导出（再进入 Step 2 扫描）；具体能力与命令以该仓库各子目录 `SKILL.md` / `README` 为准（安装见上游 `README_zh.md`，如 Cursor 下克隆并配置 skills 路径）。
-
-**备选**：未配置或未加载上述外部技能时，使用**本仓库**轻量脚本（下表「备选脚本」行）：`docx_to_md.py`、`pptx_to_md.py`，仅需 `pip install -r requirements.txt`。
+### 常见任务与建议方式
 
 | 任务 | 建议方式 |
 |------|----------|
 | 加载分步指令 | **`Read`** → `${CLAUDE_SKILL_DIR}/prompts/*.md`，见下表 |
 | 读代码、设计文档、PDF、图片 | 文件读取工具；大仓库先用搜索/语义检索定位再精读 |
-| Word（.docx）→ Markdown + 抽取图片（**备选脚本**，扫描前） | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/docx_to_md.py --input {path}.docx --output {dir}/{name}.md`；图片默认写入与 `.md` 同级的 `{name}_media/`；需 `pip install -r requirements.txt`（含 mammoth）；复杂版式可改由所内导出 PDF/MD 再扫 |
-| PowerPoint（.pptx）→ Markdown + 抽取图片（**备选脚本**，扫描前） | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/pptx_to_md.py --input {path}.pptx --output {dir}/{name}.md`；默认 `{name}_media/`；需 `pip install -r requirements.txt`（含 python-pptx）；**旧版 .ppt 不支持**，请先另存为 `.pptx`；图表/SmartArt 等若未以图片形状嵌入则可能仅能从备注或另行导出补全 |
+| Word（.docx）→ Markdown + 抽取图片（扫描前） | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/docx_to_md.py --input {path}.docx --output {dir}/{name}.md`；图片默认写入与 `.md` 同级的 `{name}_media/`；需 `pip install -r requirements.txt`（含 mammoth）；复杂版式可改由所内导出 PDF/MD 再扫 |
+| PowerPoint（.pptx）→ Markdown + 抽取图片（扫描前） | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/pptx_to_md.py --input {path}.pptx --output {dir}/{name}.md`；默认 `{name}_media/`；需 `pip install -r requirements.txt`（含 python-pptx）；**旧版 .ppt 不支持**，请先另存为 `.pptx`；图表/SmartArt 等若未以图片形状嵌入则可能仅能从备注或另行导出补全 |
 | 罗列目录、按名找文件 | 目录列举 / 按文件名搜索 |
 | 联网查新（Step 5） | 执行前 **`Read`** `prompts/prior_art_search.md`；著录与外链要求以该文件为准 |
 | 交底书定稿交付（**须同时** .md + .docx） | **3.2** 系统框图与 **3.4** 流程图均用 fenced ``mermaid``，**不要** ASCII 文字流程图/框图。定稿执行 **`tools/mermaid_render.py`**：mermaid 转 PNG（失败块保留围栏）后默认生成同名 **.docx**；若 Word 失败，按 stderr 提示手动运行 **`md_to_docx.py`**。详见 **`tools/README.md`** |
@@ -107,14 +103,3 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 □ 脱敏、mermaid（定稿均已渲染为 PNG）、章节引用符合 template_reference；**已交付 .md 与 .docx**，且**文件名符合 §7.3 第 5 点**（**凡交付均含**时间戳后缀）；**正文无**技能/示例仓库类文末脚注
 □ 自检在后台完成，正文无自检清单章节
 ```
-
----
-
-## 参考资源
-
-- 示例案件目录：[examples/README.md](examples/README.md)  
-- 产品流程与目录约定：[docs/PRD.md](docs/PRD.md)  
-- 安装路径（Claude Code / Cursor）：[INSTALL.md](INSTALL.md)  
-- 仓库结构与说明：[README.md](README.md)  
-- 工程结构说明：[docs/skill-structure.md](docs/skill-structure.md)  
-- 交底书模版细则：[prompts/template_reference.md](prompts/template_reference.md)

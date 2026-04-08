@@ -17,7 +17,7 @@
 
 **本 Skill 按 AgentSkills 约定编排全流程，`SKILL.md` + `prompts/` 分步可读可迭代。**
 
-[功能特性](#功能特性) · [安装](#安装) · [使用](#使用) · [项目结构](#项目结构) · [示例](#示例) · [运行效果](#运行效果) · [详细安装说明](INSTALL.md) · [技能入口](SKILL.md)
+[功能特性](#功能特性) · [安装](#安装) · [使用](#使用) · [项目结构](#项目结构) · [示例](#示例) · [运行效果](#运行效果) · [参考文档](#参考文档) · [详细安装说明](INSTALL.md) · [技能入口](SKILL.md)
 
 </div>
 
@@ -35,7 +35,7 @@
 | 自检 | 逻辑闭环、公式与参数一致（`disclosure_self_check.md`，不写入正文） |
 | 迭代 | **合并** / **纠正** 另存新文件；**`交底书修订对话记录.md`** 逐条追加（`iteration_context.md`、`iteration_dialog_log.py`） |
 
-**Office 抽取**：可优先接入 [MiniMax-AI/skills](https://github.com/MiniMax-AI/skills) 中 Office 相关子技能；**备选**本仓库 `docx_to_md.py` / `pptx_to_md.py`（见 `SKILL.md`）。
+**Office 抽取**：`.docx` / `.pptx` 先用本仓库 `docx_to_md.py` / `pptx_to_md.py` 转为 Markdown 再扫描（见 `SKILL.md`）。
 
 ---
 
@@ -125,6 +125,17 @@ patent-disclosure-skill/
 
 ![迭代更新：新时间戳文件与交底书修订对话记录](docs/效果例-迭代更新.jpg)
 
+---
+
+## 参考文档
+
+- [技能入口与 Agent 流程](SKILL.md)（触发条件、`prompts/` 映射、工具表）
+- [详细安装说明](INSTALL.md)（Claude Code / Cursor 路径）
+- [图示与转换脚本](tools/README.md)（mermaid / mmdc、Word 导出）
+- [示例案件与原材料说明](examples/README.md)
+- [产品流程与目录约定](docs/PRD.md)
+- [工程结构说明](docs/skill-structure.md)
+- [交底书模版细则](prompts/template_reference.md)
 
 ---
 

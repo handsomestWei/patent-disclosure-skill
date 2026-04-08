@@ -29,9 +29,11 @@
 
 - 大仓库先用搜索 / 语义检索定位关键文件，再精读。
 - 记录**引用路径或文件名**，便于在交底书中写「参见某设计」时脱敏表述。
-- 若原材料为 **Word（.docx）** 或 **PowerPoint（.pptx）**：**已接入外部 [MiniMax Skills](https://github.com/MiniMax-AI/skills)（如 `minimax-docx`、`pptx-generator`）时，优先用其读取/导出**，再扫描；**否则**用本技能仓库 **`tools/docx_to_md.py`** / **`tools/pptx_to_md.py`**（见 `SKILL.md`「Office 原材料提取顺序」）；老版 `.doc` / `.ppt` 需先另存为 OOXML 格式。
+- 凡出现 **`.docx` / `.pptx`**，**必须**按下一节 **「Office 文档」** 先转 Markdown 再读，不可跳过或只扫纯文本而漏掉 Office。
 
 ## Office 文档（.docx / .pptx）：必先转换再读
+
+**格式**：脚本仅支持 OOXML（**`.docx` / `.pptx`**）。旧版 **`.doc` / `.ppt`** 须先在 Office / WPS 中**另存为**新格式后再走下列流程。
 
 Agent **不得**因「只能舒适读取文本」而**遗漏**项目内的 Word / PPT：**必须先转为 Markdown 再纳入扫描**，不能只扫 `.md` 与源码。
 

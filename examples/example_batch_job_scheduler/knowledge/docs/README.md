@@ -8,7 +8,7 @@
 
 ## 示例 Word / PPT（含嵌入图）
 
-用于演练 **`tools/docx_to_md.py`**、**`tools/pptx_to_md.py`** 或外部 MiniMax Office 技能；与 `architecture.md` 口径一致，均为虚构示例。
+用于演练 **`tools/docx_to_md.py`**、**`tools/pptx_to_md.py`**；与 `architecture.md` 口径一致，均为虚构示例。
 
 **Step 2 扫描约定**（见 `prompts/project_scan.md`）：Agent **须**先将下表 `.docx`/`.pptx` **转为 `.md` 再 Read**，不可只扫 `architecture.md` 而忽略 Office；**勿**对 `sample_assets/*.png` 单独做识图（与内嵌图重复，以转换后的 Markdown 为准）。
 

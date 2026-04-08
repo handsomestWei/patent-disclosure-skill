@@ -43,7 +43,7 @@ Step 8  内部自检（prompts/disclosure_self_check.md）→ 修订后交付
 
 ## 4. 约束
 
-- Office 原材料（Word/PPT）：若宿主已接入外部 **[MiniMax Skills](https://github.com/MiniMax-AI/skills)** 中相关子技能，**优先**用其读取/导出；否则使用本仓库 `tools/docx_to_md.py`、`tools/pptx_to_md.py`（见 `SKILL.md`）。
+- Office 原材料（Word/PPT）：使用本仓库 `tools/docx_to_md.py`、`tools/pptx_to_md.py` 转换后再扫描（见 `SKILL.md`）。
 - 交底书正文**不得**包含「自检清单」章节。
 - 脱敏要求见 `disclosure_builder.md` / `template_reference.md`。
 - 查新结论须写入第一章并与技术问题、方案呼应；渠道与著录细则见 `prompts/prior_art_search.md`。
