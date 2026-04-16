@@ -3,7 +3,7 @@
 ## 设计原则
 
 - **`SKILL.md`**：入口与编排；具体写法分散在 **`prompts/`**，由执行方在运行时用 **`Read`** 加载，避免单文件过长。
-- **`tools/`**：可选脚本扩展，与编排解耦。Word/PPT 转可扫描文本时用本仓库 `docx_to_md.py` / `pptx_to_md.py`（见 `SKILL.md`）。
+- **`tools/`**：可选脚本扩展，与编排解耦。Word/PPT 转可扫描文本时用 `docx_to_md.py` / `pptx_to_md.py`；查新优先 `cnipa_epub_search.py`（一步；需落盘或仅解析文件时用 `cnipa_epub_crawler.py` / `cnipa_epub_parse.py`，见 `prior_art_search.md`）。
 - **`outputs/`**：整目录由 `.gitignore` 忽略；可随仓库提交的范例见 **`examples/`**。
 - **`examples/`**：随仓库提交的虚构**原材料**示例（如 `knowledge/`）；流程产出在 `outputs/`。
 
@@ -14,7 +14,7 @@
 | `SKILL.md` | 触发条件、工具映射、步骤顺序、`prompts/` 索引 |
 | `prompts/` | 分步模板（录入、扫描、专利点、查新、预览、成文、自检、迭代） |
 | `prompts/template_reference.md` | 交底书章节细则与 mermaid 图示范例 |
-| `tools/` | `mermaid_render.py`（mermaid → PNG）、`md_to_docx.py`、`docx_to_md.py`、`pptx_to_md.py` 等；mermaid 须 Node，见 `tools/README.md` |
+| `tools/` | `mermaid_render.py`、`md_to_docx.py`、`docx_to_md.py`、`pptx_to_md.py`、`cnipa_epub_search.py`、`cnipa_epub_crawler.py`、`cnipa_epub_parse.py` 等；mermaid 须 Node；国知局抓取须 Playwright，见 `tools/README.md` |
 | `examples/example_batch_job_scheduler/` | 示例案件：仅 **`knowledge/`** 虚构原材料（专利点 / 交底书等由流程生成到 `outputs/`） |
 | `docs/PRD.md` | 流程与约束摘要 |
 | `docs/skill-structure.md` | 本仓库结构说明 |
