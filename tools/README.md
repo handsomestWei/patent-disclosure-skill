@@ -20,9 +20,15 @@
 
 用本仓库 **`docx_to_md.py`**、**`pptx_to_md.py`**（纯 Python + 仓库根目录 `requirements.txt`），见下文各节；与 `SKILL.md`「工具与数据来源」一致。
 
-## mermaid_render.py — mermaid：图示 → PNG + 定稿 Markdown + **默认生成 Word**
+## 图示交付约定
 
-将 fenced **mermaid**（`` ```mermaid`` ``）逐块交给 **`mmdc`** 渲染为 PNG；输出 `.md` 中**保留** mermaid 围栏源码，并追加 ``<!-- ![图示 n](mermaid_figures/…) -->`` 供 **`md_to_docx.py`** 嵌入 Word（Word **仅**嵌 PNG，不写 mermaid 代码块）。**3.2 系统框图**与 **3.4 流程图**均用 mermaid（`flowchart` / `subgraph` 等），交底书正文**不再**要求单独的文字框图或 PlantUML。
+新版默认模板（`prompts/template_reference_yh.md`）要求 LLM 先规划图示，再用 Images 2.0 生成专利交底书风格黑白线条图；全部图示放在交底书同级 `images/` 文件夹，并按 `图示1_*.png`、`图示2_*.png` 顺序命名。正文图片引用、图注、第 13 项附图说明与附图标记须一致。
+
+Images 2.0 不可用或图示质量不合格时，可降级使用下方 `mermaid_render.py` 或其它可控线条图方式；降级图示仍应放入 `images/` 或与正文引用一致的图示目录，并遵守图号、图注和附图标记一致性。
+
+## mermaid_render.py — mermaid 降级图示 → PNG + 定稿 Markdown + **默认生成 Word**
+
+将 fenced **mermaid**（`` ```mermaid`` ``）逐块交给 **`mmdc`** 渲染为 PNG；输出 `.md` 中**保留** mermaid 围栏源码，并追加 ``<!-- ![图示 n](mermaid_figures/…) -->`` 供 **`md_to_docx.py`** 嵌入 Word（Word **仅**嵌 PNG，不写 mermaid 代码块）。新版默认优先 Images 2.0；mermaid 用于不可调用或质量不合格时的可控线图降级，交底书正文**不再**要求 ASCII 文字框图或 PlantUML。
 
 **生图失败降级**：某一围栏 `mmdc` 失败时**不中断**——该处**保留**原 `` ```mermaid`` … `` ``` `` 源码；其余块照常出图。仍写出定稿 `.md`，并**照常尝试**生成 Word（未出图块在 Word 中为 **Consolas 代码块**，与 `md_to_docx` 行为一致）。
 
@@ -89,7 +95,7 @@ Windows 上若仅装 Node 未执行 `npm install`，脚本会通过 `npx -y @mer
 
 ### 与交底书约定
 
-- 技能要求定稿**同时**交付 **Markdown + Word**，且 **`-o` 主文件名须含 `_{YYYYMMDDHHmmss}`**（`prompts/disclosure_builder.md` §7.3 第 5 点，含首次定稿）；**3.2 系统框图**与 **3.4 流程图**均用 fenced mermaid，**不要** ASCII 文字流程图或框图。
+- 技能要求定稿**同时**交付 **Markdown + Word**，且 **`-o` 主文件名须含 `_{YYYYMMDDHHmmss}`**（`prompts/disclosure_builder.md` §7.3 第 5 点，含首次定稿）；含图示时同级交付 `images/`，并确保正文引用、图注、第 13 项附图说明和附图标记一致。降级使用 mermaid 时，**不要** ASCII 文字流程图或框图。
 - 交付代理人前：运行 `mermaid_render.py` 一步即可（默认再调 `md_to_docx.py`）；若 Word 失败，按 stderr 提示手动执行 `md_to_docx.py`。
 
 ---
@@ -190,7 +196,7 @@ python3 tools/md_to_docx.py -i a.md -o a.docx --image-max-width-inches 6 --image
 ```bash
 python3 tools/iteration_dialog_log.py --case-dir outputs/某案件 --kind merge \
   --user "补充了调度装置资料，合并进第三章" \
-  --summary "已扩写 3.4，并更新实施例；未改保护点表述。" \
+  --summary "已扩写实施方式，并更新附图说明；未改保护点表述。" \
   --artifacts "一种XXX方法及系统_20260408143025.md,一种XXX方法及系统_20260408143025.docx"
 ```
 

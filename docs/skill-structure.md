@@ -13,7 +13,8 @@
 |------|------|
 | `SKILL.md` | 触发条件、工具映射、步骤顺序、`prompts/` 索引 |
 | `prompts/` | 分步模板（录入、扫描、专利点、查新、预览、成文、自检、迭代） |
-| `prompts/template_reference.md` | 交底书章节细则与 mermaid 图示范例 |
+| `prompts/template_reference_yh.md` | 新版默认 15 项交底书模板、Images 2.0 图示生成与插入规范 |
+| `prompts/template_reference.md` | 旧版交底书章节细则与 mermaid 图示范例，保留作历史参考 |
 | `tools/` | `mermaid_render.py`、`md_to_docx.py`、`docx_to_md.py`、`pptx_to_md.py`、`cnipa_epub_search.py`、`cnipa_epub_crawler.py`、`cnipa_epub_parse.py` 等；mermaid 须 Node；国知局抓取须 Playwright，见 `tools/README.md` |
 | `examples/example_batch_job_scheduler/` | 示例案件：仅 **`knowledge/`** 虚构原材料（专利点 / 交底书等由流程生成到 `outputs/`） |
 | `docs/PRD.md` | 流程与约束摘要 |
@@ -32,4 +33,4 @@
 
 可将 `examples/example_batch_job_scheduler/knowledge/` 的结构复制到自建案件目录（或 `outputs/{案件标识}/knowledge/`）后替换为真实原材料。
 
-**交付留档**：凡写入用户产出目录的交底书定稿（**含首次 Step 7 与迭代**），主名均为 **`{案件名}_{YYYYMMDDHHmmss}.md`** 及同名 **`.docx`**（见 **`prompts/disclosure_builder.md` §7.3 第 5 点**），旧稿保留同目录。迭代时另在案件目录维护 **`交底书修订对话记录.md`**（**`tools/iteration_dialog_log.py`** 或手工）。流程见 **`prompts/iteration_context.md`**。
+**交付留档**：凡写入用户产出目录的交底书定稿（**含首次 Step 7 与迭代**），主名均为 **`{案件名}_{YYYYMMDDHHmmss}.md`** 及同名 **`.docx`**（见 **`prompts/disclosure_builder.md` §7.3 第 5 点**），旧稿保留同目录。含图示时同级交付 **`images/`** 文件夹，图片按图号顺序命名并与正文图注、附图说明、附图标记一致。迭代时另在案件目录维护 **`交底书修订对话记录.md`**（**`tools/iteration_dialog_log.py`** 或手工）。流程见 **`prompts/iteration_context.md`**。
