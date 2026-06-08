@@ -151,6 +151,8 @@ python3 ${CLAUDE_SKILL_DIR}/tools/prior_art_search.py --mode federate "job sched
 > 需配置 `PATENT_EMBED_URL`/`PATENT_EMBED_MODEL`（OpenAI 兼容端点）等环境变量；**未配置则原样返回**
 > （`PRIOR_ART_COVERAGE.rerank.applied=false`），不影响主流程。它**只是给 Agent 的辅助排序信号**——
 > 最终相关度判定与精选**仍以上文第三步 Agent 推理为准**，不得仅凭 `score` 取舍。
+> **保密**：`--rerank` 会将查询（发明点描述，可能未公开）与候选摘要外发至所配置端点；**涉密方案须用自托管/内网端点**，
+> 或干脆不加 `--rerank`（则无任何外发）。
 
 ## 分析要求
 

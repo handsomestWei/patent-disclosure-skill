@@ -15,6 +15,8 @@
 | `provider_google_patents.py` | Google Patents provider（keyless、`quality_rank=20`），全球回退；非官方端点，异常即返回空由编排器回退。`parse_xhr_json` 为纯函数，便于离线测试。 |
 | `semantic_rerank.py` | **P2b** 语义重排：对已召回候选集按与查询的 embedding 相似度排序（写 `Hit.score`）。后端可插拔（`PATENT_EMBED_URL`/`PATENT_EMBED_MODEL`/`PATENT_EMBED_API_KEY`，OpenAI 兼容端点），**未配置即 no-op 原样返回**。`cosine`/`rerank` 纯逻辑，`embed_fn` 可注入便于离线测试。 |
 
+> ⚠️ **保密注意**：启用 `--rerank` 会把 **`--rerank-query`（发明点描述，可能尚未公开）** 与候选**摘要**发送到所配置的 `PATENT_EMBED_URL`。涉密 / 未公开技术方案**请勿**指向第三方云 API；应使用**自托管 / 内网** embeddings 端点（如本地 `text-embeddings-inference`、`ollama` 等 OpenAI 兼容服务）。不需要语义重排时**不加** `--rerank` 即不发生任何外发。
+
 ```bash
 # 启用国知局源（可选）：装 Playwright；不装则编排器自动回退到 google_patents
 pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium
