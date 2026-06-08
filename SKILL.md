@@ -1,7 +1,7 @@
 ---
 name: patent-disclosure-skill
 description: "通用中国专利挖掘发现与交底书生成全流程：扫描项目文档挖掘专利点、讨论融合、基于脱敏模版生成技术交底书、联网查新、生成后自检含逻辑闭环与公式参数一致性。| Patent mining, disclosure drafting, prior-art search, and consistency self-check."
-version: "1.11.0"
+version: "1.12.0"
 user-invocable: true
 argument-hint: "[可选：项目路径或技术主题关键词]"
 allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash

@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from provider_base import Hit, Provider, merge_dedupe, to_jsonable  # noqa: E402
 from provider_google_patents import parse_xhr_json  # noqa: E402
 import prior_art_search  # noqa: E402
+import semantic_rerank  # noqa: E402
 
 
 class FakeProvider(Provider):
@@ -264,8 +265,64 @@ def test_to_jsonable_shape():
     assert rows == [{
         "source": "google_patents", "title": "t",
         "pub_number": "CN1A", "link": "u", "abstract": "a",
-        "cpc": "G06F9/48", "ipc": "G06F9/48",
+        "cpc": "G06F9/48", "ipc": "G06F9/48", "score": None,
     }]
+
+
+# ---- P2b 语义重排（注入 fake embed，不依赖网络）----
+
+def test_cosine_basic():
+    assert semantic_rerank.cosine([1, 0], [1, 0]) == 1.0
+    assert semantic_rerank.cosine([1, 0], [0, 1]) == 0.0
+    assert semantic_rerank.cosine([0, 0], [1, 1]) == 0.0   # 零向量
+    assert abs(semantic_rerank.cosine([1, 1], [1, 0]) - (1 / (2 ** 0.5))) < 1e-9
+
+
+def _fake_embed(table):
+    def fn(texts):
+        return [table[t] for t in texts]
+    return fn
+
+
+def test_rerank_orders_by_similarity_and_sets_score():
+    # query "q" 与 a 同向(1.0)、c 次之(~0.707)、b 正交(0.0)
+    table = {"q": [1, 0], "a": [1, 0], "b": [0, 1], "c": [0.7, 0.7]}
+    hits = [_h("s", num="B", title="b"), _h("s", num="A", title="a"),
+            _h("s", num="C", title="c")]
+    ranked, info = semantic_rerank.rerank("q", hits, embed_fn=_fake_embed(table))
+    assert [h.title for h in ranked] == ["a", "c", "b"]
+    assert info["applied"] is True and info["scored"] == 3
+    assert ranked[0].score == 1.0 and ranked[2].score == 0.0
+
+
+def test_rerank_top_k_truncates():
+    table = {"q": [1, 0], "a": [1, 0], "b": [0, 1], "c": [0.7, 0.7]}
+    hits = [_h("s", title="a"), _h("s", title="b"), _h("s", title="c")]
+    ranked, info = semantic_rerank.rerank("q", hits, top_k=2, embed_fn=_fake_embed(table))
+    assert [h.title for h in ranked] == ["a", "c"]
+    assert info["returned"] == 2 and info["scored"] == 3
+
+
+def test_rerank_noop_when_backend_unconfigured():
+    hits = [_h("s", num="A", title="a"), _h("s", num="B", title="b")]
+    ranked, info = semantic_rerank.rerank("q", hits, embed_fn=lambda texts: None)
+    assert ranked == hits and info["applied"] is False
+    assert all(h.score is None for h in ranked)
+
+
+def test_rerank_noop_on_embed_error():
+    def boom(texts):
+        raise RuntimeError("embed down")
+    hits = [_h("s", num="A", title="a")]
+    ranked, info = semantic_rerank.rerank("q", hits, embed_fn=boom)
+    assert ranked == hits and info["applied"] is False
+    assert "embed error" in info["reason"]
+
+
+def test_rerank_noop_on_empty_inputs():
+    assert semantic_rerank.rerank("q", [], embed_fn=_fake_embed({}))[1]["reason"] == "no hits"
+    h = [_h("s", title="a")]
+    assert semantic_rerank.rerank("  ", h, embed_fn=_fake_embed({}))[1]["reason"] == "empty query"
 
 
 def _run_all():

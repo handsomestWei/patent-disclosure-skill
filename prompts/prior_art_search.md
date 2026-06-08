@@ -146,6 +146,12 @@ python3 ${CLAUDE_SKILL_DIR}/tools/prior_art_search.py --mode federate "job sched
 **1.1 检索说明衔接**：如实写**数据库名**与**主要检索词**（可概括扩展词与分类号，如「并按 IPC G06F9/48 等分类检索」），
 **不暴露**脚本名/Playwright/Agent/流程等内部信息（同下「1.1 检索说明写法」）。
 
+> **P2b 可选 · 语义预重排**：召回后可加 `--rerank --rerank-query "<发明点描述>" [--top-k N]`，
+> 由编排器对候选集按 embedding 相似度**预排序**（每条 `PRIOR_ART_JSON` 得 `score`，0~1）。
+> 需配置 `PATENT_EMBED_URL`/`PATENT_EMBED_MODEL`（OpenAI 兼容端点）等环境变量；**未配置则原样返回**
+> （`PRIOR_ART_COVERAGE.rerank.applied=false`），不影响主流程。它**只是给 Agent 的辅助排序信号**——
+> 最终相关度判定与精选**仍以上文第三步 Agent 推理为准**，不得仅凭 `score` 取舍。
+
 ## 分析要求
 
 对检索到的、与方案**高度相关**的现有专利或公开文献逐项概括：

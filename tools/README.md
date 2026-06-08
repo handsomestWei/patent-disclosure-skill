@@ -13,12 +13,20 @@
 | `provider_base.py` | 统一 `Hit` 结构 + `Provider` 接口 + `merge_dedupe` / `to_jsonable`。 |
 | `provider_cnipa.py` | 国知局公布站 provider（`quality_rank=10`，最优先），包装下方 `cnipa_epub_*`，缺 Playwright 时自动跳过。 |
 | `provider_google_patents.py` | Google Patents provider（keyless、`quality_rank=20`），全球回退；非官方端点，异常即返回空由编排器回退。`parse_xhr_json` 为纯函数，便于离线测试。 |
+| `semantic_rerank.py` | **P2b** 语义重排：对已召回候选集按与查询的 embedding 相似度排序（写 `Hit.score`）。后端可插拔（`PATENT_EMBED_URL`/`PATENT_EMBED_MODEL`/`PATENT_EMBED_API_KEY`，OpenAI 兼容端点），**未配置即 no-op 原样返回**。`cosine`/`rerank` 纯逻辑，`embed_fn` 可注入便于离线测试。 |
 
 ```bash
 # 启用国知局源（可选）：装 Playwright；不装则编排器自动回退到 google_patents
 pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium
 python3 tools/prior_art_search.py 知识库            # 单词一查（cnipa 走 Playwright，控时务必一次一词）
 python3 tools/prior_art_search.py --mode federate 调度   # 同一词跨多源合并、更高召回
+
+# P2b 语义重排（可选，需先配置 embeddings 端点；未配置则原样返回）
+export PATENT_EMBED_URL=https://api.openai.com/v1/embeddings
+export PATENT_EMBED_MODEL=text-embedding-3-small
+export PATENT_EMBED_API_KEY=sk-...
+python3 tools/prior_art_search.py --mode federate --rerank \
+  --rerank-query "异构集群的负载感知任务调度" --top-k 10 调度
 ```
 
 > **扩展数据源**：实现 `provider_base.Provider`（设 `name`/`quality_rank`，实现 `available()`/`search()`），

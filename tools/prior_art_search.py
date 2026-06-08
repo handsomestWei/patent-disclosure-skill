@@ -168,6 +168,22 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="逗号分隔的数据源白名单（name），默认全部内置源",
     )
+    parser.add_argument(
+        "--rerank",
+        action="store_true",
+        help="P2b：对召回结果做语义重排（需配置 PATENT_EMBED_* 环境变量，未配置则原样返回）",
+    )
+    parser.add_argument(
+        "--rerank-query",
+        default="",
+        help="语义重排的查询文本（建议传发明点描述）；缺省时用检索词拼接",
+    )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=0,
+        help="重排后仅保留前 K 条（0 表示不截断）",
+    )
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
 
     terms = _terms_from_argv(args.terms)
@@ -191,6 +207,21 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
     hits, coverage = run_with_coverage(terms, providers, mode=args.mode)
+
+    if args.rerank:
+        import semantic_rerank
+
+        query = args.rerank_query.strip() or " ".join(terms)
+        hits, rinfo = semantic_rerank.rerank(query, hits, top_k=(args.top_k or None))
+        coverage["rerank"] = rinfo
+        _note(
+            "PA_RERANK: applied=%s backend=%s scored=%d returned=%d reason=%s"
+            % (rinfo["applied"], rinfo["backend"], rinfo["scored"],
+               rinfo["returned"], rinfo["reason"] or "-")
+        )
+    else:
+        coverage["rerank"] = {"applied": False, "reason": "not requested"}
+
     print("PRIOR_ART_JSON:", json.dumps(to_jsonable(hits), ensure_ascii=False), flush=True)
     print("PRIOR_ART_COVERAGE:", json.dumps(coverage, ensure_ascii=False), flush=True)
     return 0

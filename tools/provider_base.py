@@ -32,6 +32,7 @@ class Hit:
     abstract: str | None = None
     cpc: str | None = None  # CPC 分类号（多个以 "; " 连接），供 P1 按分类聚类/重排
     ipc: str | None = None  # IPC 分类号（同上）
+    score: float | None = None  # P2b 语义重排相似度（相对查询，0~1）；未重排为 None
 
     def dedupe_key(self) -> str:
         """
