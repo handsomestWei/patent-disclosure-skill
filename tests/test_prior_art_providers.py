@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import sys
 from pathlib import Path
 
@@ -214,6 +215,47 @@ def test_google_patents_search_diagnoses_failure():
         assert "google_patents" in buf.getvalue()  # 但留下可诊断的 breadcrumb
     finally:
         u.urlopen = orig
+
+
+def test_coverage_reports_each_provider_status_federate():
+    p_ok = FakeProvider("ok", 10, {"t": [_h("ok", num="CN1A")]})
+    p_empty = FakeProvider("empty", 20, {"t": []})
+    p_skip = FakeProvider("skip", 30, available=False, reason="no key")
+    p_err = FakeProvider("err", 40, raises=True)
+    hits, cov = prior_art_search.run_with_coverage(
+        ["t"], [p_ok, p_empty, p_skip, p_err], mode="federate"
+    )
+    statuses = {r["name"]: r["status"] for r in cov["providers"]}
+    assert statuses == {"ok": "ok", "empty": "empty", "skip": "skipped", "err": "error"}
+    assert cov["sources_used"] == ["ok"]
+    assert cov["total_hits"] == 1 and len(hits) == 1
+    assert cov["degraded"] is True          # 有 skipped / error → 覆盖不完整
+    assert cov["mode"] == "federate" and cov["terms"] == ["t"]
+    skip_rec = next(r for r in cov["providers"] if r["name"] == "skip")
+    assert skip_rec["reason"] == "no key"
+
+
+def test_coverage_marks_not_attempted_on_fallback_stop():
+    p1 = FakeProvider("p1", 10, {"t": [_h("p1", num="CN1A")]})
+    p2 = FakeProvider("p2", 20, {"t": [_h("p2", num="CN2A")]})
+    _hits, cov = prior_art_search.run_with_coverage(["t"], [p1, p2], mode="fallback")
+    statuses = {r["name"]: r["status"] for r in cov["providers"]}
+    assert statuses == {"p1": "ok", "p2": "not_attempted"}
+    assert p2.searched == []
+    assert cov["degraded"] is False         # 仅早停，无源不可用
+    assert cov["sources_used"] == ["p1"]
+
+
+def test_main_emits_json_and_coverage_lines():
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
+        rc = prior_art_search.main(["--providers", "google_patents", "调度"])
+    out = buf.getvalue()
+    assert rc == 0
+    assert "PRIOR_ART_JSON:" in out and "PRIOR_ART_COVERAGE:" in out
+    cov_line = next(l for l in out.splitlines() if l.startswith("PRIOR_ART_COVERAGE:"))
+    cov = json.loads(cov_line[len("PRIOR_ART_COVERAGE:"):].strip())
+    assert set(cov) >= {"mode", "terms", "providers", "sources_used", "total_hits", "degraded"}
 
 
 def test_to_jsonable_shape():

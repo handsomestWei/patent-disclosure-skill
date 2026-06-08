@@ -14,11 +14,16 @@
 1. **工具**：`tools/prior_art_search.py`；内置数据源 `cnipa_epub`（国知局官方公布站，优先级最高）与
    `google_patents`（keyless 全球回退）。某源缺依赖/缺密钥/不可达时**自动跳过**并回退到下一个，
    不再因单一站点改版或反爬而整体失败。
-2. **输出约定**：**stdout 仅一行** **`PRIOR_ART_JSON:`** + JSON 数组；每条含
-   **`source`**（数据源标识）/ `title` / `pub_number` / `link` / `abstract`。诊断行
-   **`PA_PROVIDER:` / `PA_MERGE:` / `PA_HINT:`** 在 **stderr** 且为 **ASCII**。
-   `source` 用于在 1.1「检索说明」中**如实标注公开数据库名**（见下「1.1 检索说明写法」；
-   写**数据库名**如「国家知识产权局专利公布公告系统」「Google Patents」，**不要**写脚本名）。
+2. **输出约定**：**stdout 两行**——
+   - **`PRIOR_ART_JSON:`** + JSON 数组；每条含 **`source`**（数据源标识）/ `title` / `pub_number` /
+     `link` / `abstract` / `cpc` / `ipc`。
+   - **`PRIOR_ART_COVERAGE:`** + JSON 对象（**P2 覆盖度报告**）：`mode` / `terms` / 各源 `status`
+     (`ok`/`empty`/`skipped`/`error`/`not_attempted`) / `sources_used` / `total_hits` / `degraded`。
+     **据此**写 1.1 检索说明与**免责声明**（见下「1.1 检索说明与免责声明」）。
+
+   诊断行 **`PA_PROVIDER:` / `PA_MERGE:` / `PA_HINT:` / `PA_WARN:`** 在 **stderr** 且为 **ASCII**。
+   `source` / `sources_used` 用于在 1.1 中**如实标注公开数据库名**（写**数据库名**如「国家知识产权局
+   专利公布公告系统」「Google Patents」，**不要**写脚本名）。
 3. **模式**：默认 `--mode fallback`（第一个有命中的源即停，控时控成本）；需要更高召回时用
    `--mode federate`（所有可用源合并）。
 4. **检索词与控时**：拆词责任仍在 Agent（见下「国知局检索词」语义块要求）。**因 `cnipa_epub`
@@ -29,8 +34,10 @@
    python3 ${CLAUDE_SKILL_DIR}/tools/prior_art_search.py 知识库
    python3 ${CLAUDE_SKILL_DIR}/tools/prior_art_search.py 检索增强
    ```
-5. **解析与降级**：以 stdout 唯一一行 `PRIOR_ART_JSON:` 的 JSON 为准；其 `abstract` 字段同样适用下文
-   **「`abstract` 必用」**。当 `PRIOR_ART_JSON` 为空数组、或条目经核对明显无关时，按 **B** 降级 **WebSearch**。
+5. **解析与降级**：以 stdout 的 `PRIOR_ART_JSON:` 行为命中、`PRIOR_ART_COVERAGE:` 行为覆盖度依据；
+   `abstract` 字段适用下文 **「`abstract` 必用」**。当 `PRIOR_ART_JSON` 为空数组、或条目经核对明显无关时，
+   按 **B** 降级 **WebSearch**（并在覆盖度中体现已尝试的源）。当 `degraded` 为真（有源 `skipped`/`error`），
+   说明覆盖不完整，**免责声明须如实反映**。
 
 > 仍可直接调用 `cnipa_epub_search.py`（输出 `EPUB_HITS_JSON:`）走**仅国知局**的旧路径；
 > 编排器与其行为一致，只是多了自动回退与统一 `source` 标注。下文 **A / B** 描述各数据源细节。
@@ -165,14 +172,16 @@ python3 ${CLAUDE_SKILL_DIR}/tools/prior_art_search.py --mode federate "job sched
 
 便于写进交底书：保留专利号、标题、**消化摘要后的**一两句方案概括（有 **`abstract`** 时概括须可追溯至该摘要）；**每条另起一行或表格列给出「来源 URL」**。避免大段抄袭权利要求或整段粘贴官方摘要。
 
-### 1.1「检索说明」写法（交付正文，必遵）
+### 1.1「检索说明与免责声明」写法（交付正文，必遵）
 
 写入交底书 **1.1** 开头的「检索说明」时，面向**代理人/审查员**表述，**不要**暴露 Agent 查新流程或本仓库工具实现。
 
-- **须写**：实际使用的**公开数据库或渠道名称**（如「国家知识产权局专利公布公告系统」）、本案**主要检索词**（与 Step 5 用词一致或概括）；若部分条目经 **Google Patents** 等公开页复核著录项，可一句带过。
-- **禁止写入 1.1 正文**：脚本/文件名（如 **`cnipa_epub_search.py`**、**`cnipa_epub_crawler.py`**）、「查新优先使用…检索工具」「是否触发 Google 学术降级」、Playwright、WebSearch、Agent、技能仓库名等**内部或流程元信息**。
-- **示例（须按本案替换检索词与渠道）**：
+- **须写**：实际使用的**公开数据库或渠道名称**（**以覆盖度报告 `sources_used` 为准如实列出**，如「国家知识产权局专利公布公告系统」「Google Patents」）、本案**主要检索词**（与 Step 5 用词一致或概括，可含分类号）；若部分条目经 **Google Patents** 等公开页复核著录项，可一句带过。
+- **覆盖度须如实**：**禁止**夸大检索范围。若 `PRIOR_ART_COVERAGE` 中 `degraded` 为真或某源 `skipped`/`error`（如未启用国知局源），**只列实际检索到的库**，不得声称检索了未实际使用的数据库。
+- **免责声明（必写一句）**：1.1 检索说明须包含一句**初步性/非法律级**声明，明确本检索为辅助性初步查新、不构成可专利性或自由实施（FTO）的法律结论，建议由专利代理人/审查员进一步检索复核。**措辞面向代理人，不出现工具/流程信息。**
+- **禁止写入 1.1 正文**：脚本/文件名（如 **`cnipa_epub_search.py`**）、「查新优先使用…检索工具」「是否触发降级」、Playwright、WebSearch、Agent、覆盖度报告/`degraded` 等字段名、技能仓库名等**内部或流程元信息**。
+- **示例（须按本案替换检索词、渠道，并按覆盖度报告调整所列数据库）**：
 
-  > 检索说明：在**国家知识产权局专利公布公告系统**及 **Google Patents** 中，以「批任务调度」「异构集群调度」「任务队列重排」「负载感知调度」等为检索词进行检索；部分条目的公开文本与著录项以 Google Patents 页面复核。
+  > 检索说明：在**国家知识产权局专利公布公告系统**及 **Google Patents** 中，以「批任务调度」「异构集群调度」「任务队列重排」「负载感知调度」等关键词并结合 IPC 分类（如 G06F 9/48、G06F 9/50）进行检索。上述检索为**初步辅助性查新**，不构成可专利性或自由实施（FTO）的法律意见，相关结论建议由专利代理人作进一步检索与复核。
 
-查新笔记（Agent 内部或对话留档）仍可记录是否调用脚本、是否降级 WebSearch；**上述内容不得原样抄进交底书 1.1**。
+查新笔记（Agent 内部或对话留档）仍可记录覆盖度报告、是否调用脚本、是否降级 WebSearch；**上述内部信息不得原样抄进交底书 1.1**。

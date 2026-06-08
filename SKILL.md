@@ -1,7 +1,7 @@
 ---
 name: patent-disclosure-skill
 description: "通用中国专利挖掘发现与交底书生成全流程：扫描项目文档挖掘专利点、讨论融合、基于脱敏模版生成技术交底书、联网查新、生成后自检含逻辑闭环与公式参数一致性。| Patent mining, disclosure drafting, prior-art search, and consistency self-check."
-version: "1.10.0"
+version: "1.11.0"
 user-invocable: true
 argument-hint: "[可选：项目路径或技术主题关键词]"
 allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
@@ -98,7 +98,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 □ 已按步骤 Read 对应 prompts；Step 2 若目录含 Office，已执行 docx_to_md / pptx_to_md 并读了产出 `.md`
 □ 识别到「在已有交底书上修改」类意图时，已 Read `iteration_context.md` 并选用 merger 或 correction_handler（而非从头跑扫描）；交付为**新** `{案件名}_{时间戳}.md`/`.docx`，未无故覆盖旧稿
 □ 执行 merger / correction_handler 后，已在对话中输出该文件要求的留档摘要（合并摘要 / 纠正摘要）；案件目录已追加 **`交底书修订对话记录.md`**（或等价日志）
-□ 查新完成且写入 1.1 与区别论述（符合 `prior_art_search.md`：**推荐**多源编排器 `tools/prior_art_search.py`（自动按质量序回退、合并去重，解析 `PRIOR_ART_JSON`，按 `source` 标注公开数据库名）；已做 **P1 查询扩展**（中文同义/上位、英文译名、推定 **IPC/CPC** 分类号）并以 `--mode federate` **广召回**，再按**发明点重排精选 top‑N**写入 1.1；**国知局侧**（编排器内或直调 `cnipa_epub_search.py`）**已分多次调用、每轮一词，并已自行合并**；**`abstract` 必用且已充分理解后再概括**；全源无果再 **WebSearch**）
+□ 查新完成且写入 1.1 与区别论述（符合 `prior_art_search.md`：**推荐**多源编排器 `tools/prior_art_search.py`（自动按质量序回退、合并去重，解析 `PRIOR_ART_JSON`，按 `source` 标注公开数据库名）；已做 **P1 查询扩展**（中文同义/上位、英文译名、推定 **IPC/CPC** 分类号）并以 `--mode federate` **广召回**，再按**发明点重排精选 top‑N**写入 1.1；**国知局侧**（编排器内或直调 `cnipa_epub_search.py`）**已分多次调用、每轮一词，并已自行合并**；**`abstract` 必用且已充分理解后再概括**；全源无果再 **WebSearch**）；已据 **`PRIOR_ART_COVERAGE`** 覆盖度（`sources_used`/`degraded`）在 1.1**如实**列出实际检索库，并写入**初步性/非法律级免责声明**（不暴露工具/流程）
 □ 除用户明确跳过外，完成摘要预览
 □ 脱敏、mermaid（定稿均已渲染为 PNG）、章节引用符合 template_reference；含公式时 **3.4.1 符号表、§7.7 体例**（维度下标、无字母多义、LaTeX 分隔符统一）及 **3.5 符号列同形** 已满足；**已交付 .md 与 .docx**，且**文件名符合 §7.3 第 5 点**（**凡交付均含**时间戳后缀）；**正文无**技能/示例仓库类文末脚注
 □ 定稿类对话已含 **`disclosure_builder.md` §7.6**「权利要求偏向点」建议交互（**不入正文**、**不捏造**未在稿内出现的保护取向）；迭代再走 merger 时见 **`iteration_context.md`** 表格补充行

@@ -9,7 +9,7 @@
 
 | 脚本 / 模块 | 作用 |
 |------|------|
-| **`prior_art_search.py`** | **（推荐入口）** 多源编排器。**stdout 仅一行** `PRIOR_ART_JSON:` + JSON 数组（每条含 **`source`**/`title`/`pub_number`/`link`/`abstract`，及 P1 分类号 **`cpc`/`ipc`** 若数据源提供）；`PA_*` 诊断在 stderr（ASCII）。`--mode fallback`（默认，首个有命中的源即停）/ `--mode federate`（所有可用源合并，配合 **P1 查询扩展**提召回）；`--providers a,b` 限定数据源。P1 两段式召回-重排方法论见 `prompts/prior_art_search.md`。 |
+| **`prior_art_search.py`** | **（推荐入口）** 多源编排器。**stdout 两行**：`PRIOR_ART_JSON:` + JSON 数组（每条含 **`source`**/`title`/`pub_number`/`link`/`abstract` 及 P1 分类号 **`cpc`/`ipc`**）与 `PRIOR_ART_COVERAGE:` + JSON 对象（**P2 覆盖度报告**：各源 `status`、`sources_used`、`total_hits`、`degraded`，供写 1.1 检索说明与免责声明）；`PA_*` 诊断在 stderr（ASCII）。`--mode fallback`（默认）/ `--mode federate`（合并，配合 **P1 查询扩展**提召回）；`--providers a,b` 限定数据源。P1 方法论与 P2 免责声明写法见 `prompts/prior_art_search.md`。 |
 | `provider_base.py` | 统一 `Hit` 结构 + `Provider` 接口 + `merge_dedupe` / `to_jsonable`。 |
 | `provider_cnipa.py` | 国知局公布站 provider（`quality_rank=10`，最优先），包装下方 `cnipa_epub_*`，缺 Playwright 时自动跳过。 |
 | `provider_google_patents.py` | Google Patents provider（keyless、`quality_rank=20`），全球回退；非官方端点，异常即返回空由编排器回退。`parse_xhr_json` 为纯函数，便于离线测试。 |

@@ -5,10 +5,13 @@
 
 **输出约定**（与 ``cnipa_epub_search.py`` 风格一致，便于 Agent 稳定抓取）：
 
-- **stdout**：**仅一行** ``PRIOR_ART_JSON:`` + JSON 数组（UTF-8）。每条含
-  ``source`` / ``title`` / ``pub_number`` / ``link`` / ``abstract``；``source`` 标明数据源
-  （如 ``cnipa_epub`` / ``google_patents``），便于在交底书 1.1 标注公开数据库名。
-- **stderr**：``PA_PROVIDER:`` / ``PA_MERGE:`` / ``PA_HINT:`` 等诊断行，**ASCII**
+- **stdout**：**两行**，各以稳定前缀起首——
+  - ``PRIOR_ART_JSON:`` + JSON 数组（UTF-8）。每条含 ``source`` / ``title`` / ``pub_number`` /
+    ``link`` / ``abstract`` / ``cpc`` / ``ipc``；``source`` 标明数据源，便于 1.1 标注公开数据库名。
+  - ``PRIOR_ART_COVERAGE:`` + JSON 对象（**P2 覆盖度报告**）：含 ``mode`` / ``terms`` /
+    各源 ``status``（``ok``/``empty``/``skipped``/``error``/``not_attempted``）/ ``sources_used`` /
+    ``total_hits`` / ``degraded``。供 Agent 据以写 1.1「检索说明」与**免责声明**（如实反映实际检索到的库与覆盖完整度）。
+- **stderr**：``PA_PROVIDER:`` / ``PA_MERGE:`` / ``PA_HINT:`` / ``PA_WARN:`` 等诊断行，**ASCII**
   （减轻 PowerShell 把含中文 stderr 当成错误流）。
 
 **模式**：
@@ -70,19 +73,36 @@ def _note(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
 
 
-def run(
+def run_with_coverage(
     terms: list[str],
     providers: list[Provider],
     mode: str = "fallback",
-) -> list[Hit]:
+) -> tuple[list[Hit], dict]:
     """
-    跑编排：返回合并去重后的命中。``mode="fallback"`` 第一个有命中的数据源即停；
+    跑编排：返回 ``(命中, 覆盖度报告)``。``mode="fallback"`` 第一个有命中的数据源即停；
     ``mode="federate"`` 跑完所有可用数据源再合并。诊断写 stderr，不污染 stdout。
+
+    覆盖度报告（供 Agent 据以写 1.1 检索说明与**免责声明**）::
+
+      {"mode", "terms",
+       "providers": [{"name","quality_rank","status","reason","hits"}...],
+       "sources_used": [...], "total_hits": int, "degraded": bool}
+
+    其中 ``status`` ∈ ``ok`` / ``empty`` / ``skipped`` / ``error`` / ``not_attempted``；
+    ``degraded`` 为真表示**至少一个数据源不可用或出错**（覆盖不完整，免责声明须如实反映）。
     """
     collected: list[list[Hit]] = []
+    records: list[dict] = []
+    stopped = False
     for p in providers:
+        rec = {"name": p.name, "quality_rank": p.quality_rank,
+               "status": "not_attempted", "reason": "", "hits": 0}
+        records.append(rec)
+        if stopped:  # fallback 已在前序源命中并停止，余下未尝试
+            continue
         ok, reason = p.available()
         if not ok:
+            rec["status"], rec["reason"] = "skipped", reason or "n/a"
             _note("PA_PROVIDER: name=%s skipped reason=%s" % (p.name, reason or "n/a"))
             continue
         if len(terms) > 1 and getattr(p, "prefers_single_term", False):
@@ -94,21 +114,43 @@ def run(
         try:
             per_term = [p.search(t) for t in terms]
         except Exception as e:  # 单源异常不中断整条链路
+            rec["status"], rec["reason"] = "error", repr(str(e))[:300]
             _note("PA_PROVIDER: name=%s error=%s" % (p.name, repr(str(e))[:300]))
             continue
         merged = merge_dedupe(per_term)
+        rec["status"], rec["hits"] = ("ok" if merged else "empty"), len(merged)
         _note(
             "PA_PROVIDER: name=%s terms=%d hits=%d" % (p.name, len(terms), len(merged))
         )
         collected.append(merged)
         if mode == "fallback" and merged:
-            break
+            stopped = True
 
     result = merge_dedupe(collected)
-    _note("PA_MERGE: mode=%s providers_used=%d hits=%d" % (mode, len(collected), len(result)))
+    coverage = {
+        "mode": mode,
+        "terms": list(terms),
+        "providers": records,
+        "sources_used": [r["name"] for r in records if r["status"] == "ok"],
+        "total_hits": len(result),
+        "degraded": any(r["status"] in ("skipped", "error") for r in records),
+    }
+    _note(
+        "PA_MERGE: mode=%s providers_used=%d hits=%d degraded=%s"
+        % (mode, len(coverage["sources_used"]), len(result), coverage["degraded"])
+    )
     if not result:
         _note("PA_HINT: 0 hits; broaden terms, try --mode federate, or fall back to WebSearch")
-    return result
+    return result, coverage
+
+
+def run(
+    terms: list[str],
+    providers: list[Provider],
+    mode: str = "fallback",
+) -> list[Hit]:
+    """跑编排，返回合并去重后的命中（覆盖度报告请用 ``run_with_coverage``）。"""
+    return run_with_coverage(terms, providers, mode)[0]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -148,8 +190,9 @@ def main(argv: list[str] | None = None) -> int:
             _note("ERROR: no known providers match --providers=%s" % args.providers)
             return 2
 
-    hits = run(terms, providers, mode=args.mode)
+    hits, coverage = run_with_coverage(terms, providers, mode=args.mode)
     print("PRIOR_ART_JSON:", json.dumps(to_jsonable(hits), ensure_ascii=False), flush=True)
+    print("PRIOR_ART_COVERAGE:", json.dumps(coverage, ensure_ascii=False), flush=True)
     return 0
 
 
