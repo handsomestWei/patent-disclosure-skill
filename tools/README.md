@@ -17,8 +17,8 @@
 ```bash
 # 启用国知局源（可选）：装 Playwright；不装则编排器自动回退到 google_patents
 pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium
-python3 tools/prior_art_search.py 知识库            # 单词一查（cnipa 走 Playwright，控时建议一次一词）
-python3 tools/prior_art_search.py --mode federate 调度 异构调度   # 多源合并、更高召回
+python3 tools/prior_art_search.py 知识库            # 单词一查（cnipa 走 Playwright，控时务必一次一词）
+python3 tools/prior_art_search.py --mode federate 调度   # 同一词跨多源合并、更高召回
 ```
 
 > **扩展数据源**：实现 `provider_base.Provider`（设 `name`/`quality_rank`，实现 `available()`/`search()`），

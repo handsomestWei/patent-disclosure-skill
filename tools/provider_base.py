@@ -45,6 +45,9 @@ class Provider(ABC):
 
     name: str = "base"
     quality_rank: int = 100
+    #: 该源单次调用宜只处理一个检索词（如 Playwright 类抓取，多词单进程易超时）。
+    #: 编排器对这类源在收到多词时会打印 ``PA_WARN`` 提示 Agent 改为每词一次调用。
+    prefers_single_term: bool = False
 
     @abstractmethod
     def available(self) -> tuple[bool, str]:
@@ -57,8 +60,17 @@ class Provider(ABC):
         raise NotImplementedError
 
 
+#: 跨源去重时可安全补全的字段。**不含 ``abstract``**：摘要须忠于其来源
+#: （``source``），跨源补全会使一条命中的摘要来自另一数据库却仍标着原 ``source``，
+#: 与 ``prior_art_search.md``「abstract 必用、1.1 标注公开数据库名」相悖。
+_BACKFILL_FIELDS = ("title", "pub_number", "link")
+
+
 def merge_dedupe(hit_lists: list[list[Hit]]) -> list[Hit]:
-    """跨词 / 跨数据源按 ``dedupe_key`` 合并去重；保留先出现者，并用后到者补全空字段。"""
+    """
+    跨词 / 跨数据源按 ``dedupe_key`` 合并去重；保留先出现者，并用后到者补全其**空的著录字段**
+    （``title`` / ``pub_number`` / ``link``）。**不跨源补全 ``abstract``**，以保持摘要与 ``source`` 一致。
+    """
     out: list[Hit] = []
     index: dict[str, Hit] = {}
     for hits in hit_lists:
@@ -71,7 +83,7 @@ def merge_dedupe(hit_lists: list[list[Hit]]) -> list[Hit]:
                 index[key] = h
                 out.append(h)
                 continue
-            for field_name in ("title", "pub_number", "link", "abstract"):
+            for field_name in _BACKFILL_FIELDS:
                 if not getattr(cur, field_name) and getattr(h, field_name):
                     setattr(cur, field_name, getattr(h, field_name))
     return out

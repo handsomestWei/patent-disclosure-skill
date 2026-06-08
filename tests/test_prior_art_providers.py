@@ -13,6 +13,8 @@
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 from pathlib import Path
 
@@ -56,16 +58,19 @@ def test_dedupe_key_normalizes_pub_number():
     assert _h("x").dedupe_key() == ""
 
 
-def test_merge_dedupe_dedups_and_backfills():
-    a = _h("cnipa", num="CN111A", title="标题甲", abstract=None)
-    b = _h("google", num="CN111A", title=None, abstract="摘要补全")  # 同号，补 abstract
-    c = _h("google", num="CN222B", title="标题乙")
+def test_merge_dedupe_backfills_citation_fields_but_not_abstract():
+    a = _h("cnipa", num="CN111A", title=None, link=None, abstract=None)
+    # 同号，后到源带著录字段与摘要
+    b = _h("google", num="CN111A", title="标题乙", link="http://x", abstract="机翻摘要")
+    c = _h("google", num="CN222B", title="标题丙")
     out = merge_dedupe([[a], [b, c]])
     assert len(out) == 2
     first = out[0]
     assert first.pub_number == "CN111A"
-    assert first.title == "标题甲"          # 先到为主
-    assert first.abstract == "摘要补全"      # 空字段被后到补全
+    assert first.source == "cnipa"          # 先到为主，source 不变
+    assert first.title == "标题乙"           # 著录字段跨源补全
+    assert first.link == "http://x"          # 著录字段跨源补全
+    assert first.abstract is None            # abstract 不跨源补全（忠于来源）
     assert out[1].pub_number == "CN222B"
 
 
@@ -138,6 +143,25 @@ def test_run_resilient_to_provider_exception():
     p2 = FakeProvider("p2", 20, {"t": [_h("p2", num="CN2A")]})
     out = prior_art_search.run(["t"], [p1, p2], mode="fallback")
     assert [h.pub_number for h in out] == ["CN2A"]  # 异常源被跳过，链路不中断
+
+
+def test_run_warns_when_serial_source_gets_multiple_terms():
+    p = FakeProvider("cnipa", 10, {"a": [_h("cnipa", num="CN1A")], "b": []})
+    p.prefers_single_term = True
+    buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        prior_art_search.run(["a", "b"], [p], mode="fallback")
+    assert "PA_WARN" in buf.getvalue()
+    assert p.searched == ["a", "b"]  # 仍执行（仅告警，不阻断）
+
+
+def test_run_no_warn_for_serial_source_single_term():
+    p = FakeProvider("cnipa", 10, {"a": [_h("cnipa", num="CN1A")]})
+    p.prefers_single_term = True
+    buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        prior_art_search.run(["a"], [p], mode="fallback")
+    assert "PA_WARN" not in buf.getvalue()
 
 
 def test_run_federate_merges_all_sources():

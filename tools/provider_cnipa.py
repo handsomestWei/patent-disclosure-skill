@@ -14,6 +14,7 @@ from provider_base import Hit, Provider
 class CnipaEpubProvider(Provider):
     name = "cnipa_epub"
     quality_rank = 10  # 中国专利官方公布站，CN 检索优先
+    prefers_single_term = True  # 走 Playwright，多词应分多次进程调用（编排器会告警）
 
     def available(self) -> tuple[bool, str]:
         try:

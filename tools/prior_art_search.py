@@ -85,6 +85,12 @@ def run(
         if not ok:
             _note("PA_PROVIDER: name=%s skipped reason=%s" % (p.name, reason or "n/a"))
             continue
+        if len(terms) > 1 and getattr(p, "prefers_single_term", False):
+            _note(
+                "PA_WARN: name=%s prefers single term per call; running %d terms in one "
+                "process may hit Playwright/site timeouts -- prefer one Bash call per term "
+                "and merge by pub_number (see prior_art_search.md)" % (p.name, len(terms))
+            )
         try:
             per_term = [p.search(t) for t in terms]
         except Exception as e:  # 单源异常不中断整条链路
