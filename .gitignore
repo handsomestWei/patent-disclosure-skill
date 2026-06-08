@@ -7,6 +7,9 @@ disclosures/
 # 国知局抓取结果缓存（tools/）
 tools/_last_result*.html
 
+# 测试运行产物（test_math_render.py 生成的公式图）
+tests/_math_test_figures/
+
 # Python / tools
 tools/node_modules/
 __pycache__/
