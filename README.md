@@ -12,7 +12,8 @@
 <br>
 
 有设计文档和代码，但**专利点还没梳**？<br>
-交底书要**系统框图、流程图**，还要**代理人能直接改的 Word**？<br>
+交底书要**YH 15 项结构、专利风格图示、代理人能直接改的 Word**？<br>
+希望先**检索查重、避开已有专利点**，再反问挖掘新的金点子？<br>
 定稿之后还要**多轮补材料、纠错**，并希望**文件修改追溯**？<br>
 国知局公布站检索，期望 **次次爬成功、精准检索**？
 
@@ -39,7 +40,10 @@
 <tr><td nowrap width="1%"><strong>项目扫描</strong></td><td>按优先级读文档 / 代码；<code>.docx</code> / <code>.pptx</code> 先转 Markdown 再扫（见 <code>prompts/project_scan.md</code>）</td></tr>
 <tr><td nowrap width="1%"><strong>专利点</strong></td><td>候选点讨论与融合（<code>patent_points_analyzer.md</code>）</td></tr>
 <tr><td nowrap width="1%"><strong>查新</strong></td><td><strong>优先</strong> <a href="http://epub.cnipa.gov.cn/">国知局 · 中国专利公布公告</a>（<code>tools/cnipa_epub_search.py</code>）；异常或无果时降级 WebSearch（Google 学术 / Patents）。著录与外链写入第一章（<code>prior_art_search.md</code>）</td></tr>
-<tr><td nowrap width="1%"><strong>交底书成稿</strong></td><td>脱敏模版 + <strong>mermaid</strong> 系统框图与流程图；<code>mermaid_render.py</code> → PNG，默认再出 <strong>.docx</strong></td></tr>
+<tr><td nowrap width="1%"><strong>避让与挖新</strong></td><td>以检索查重为前置门禁，避开已有专利点；基于差异化提出建议和反问，可借鉴其他行业类似专利挖掘新的金点子</td></tr>
+<tr><td nowrap width="1%"><strong>交底书成稿</strong></td><td>默认 <strong>YH 15 项模板</strong>：发明名称、关键词、相关提案、摘要、代表性附图、实施方式、可替代方案、附图说明、附图标记等；原模板保留为历史参考</td></tr>
+<tr><td nowrap width="1%"><strong>图示增强</strong></td><td>LLM 规划图示并生成 <strong>Images 2.0</strong> 提示词；图示统一写入交付目录 <code>images/</code>，按顺序命名并集中放入第 13 章；附图统一放在第 13 章，默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色；mermaid 可作为降级线条图来源</td></tr>
+<tr><td nowrap width="1%"><strong>附图校验</strong></td><td><code>tools/figure_check.py</code> 校验第 13 章附图、其他章节图号引用、图注、附图说明、附图标记表和图片文件路径是否对应</td></tr>
 <tr><td nowrap width="1%"><strong>交付命名</strong></td><td>凡落盘交付：<code>{案件名}_{YYYYMMDDHHmmss}.md</code> 与同名 <code>.docx</code>（<code>disclosure_builder.md</code> §7.3）</td></tr>
 <tr><td nowrap width="1%"><strong>自检</strong></td><td>逻辑闭环、公式与参数一致（<code>disclosure_self_check.md</code>，不写入正文）</td></tr>
 <tr><td nowrap width="1%"><strong>迭代</strong></td><td><strong>合并</strong> / <strong>纠正</strong> 另存新文件；<code>交底书修订对话记录.md</code> 逐条追加（<code>iteration_context.md</code>、<code>iteration_dialog_log.py</code>）</td></tr>
@@ -84,7 +88,7 @@ pip install -r tools/requirements-cnipa.txt
 python -m playwright install chromium
 ```
 
-图示定稿另需 **Node.js**；在 `tools/` 下执行 `npm install` 或使用 `npx mmdc`（详见 [tools/README.md](tools/README.md)）。
+Images 2.0 是否可调用取决于实际 Agent 环境；若使用 mermaid 降级图示，另需 **Node.js**，在 `tools/` 下执行 `npm install` 或使用 `npx mmdc`（详见 [tools/README.md](tools/README.md)）。
 
 ---
 
@@ -97,6 +101,7 @@ python -m playwright install chromium
 
 建议同时说明 **项目路径** 或 **技术主题**（与 `SKILL.md` 中 `argument-hint` 一致）。  
 **查新（Step 5）** 会优先通过 [中国专利公布公告](http://epub.cnipa.gov.cn/) 检索中国专利公开信息，再按需补充其他来源；流程见 `prompts/prior_art_search.md`。  
+**成稿（Step 7）** 默认使用 YH 15 项技术底稿模板（`disclosure_builder.md + template_reference_yh.md`），图示由 LLM 规划并按 Images 2.0 规范生成到 `images/`，附图统一放在第 13 章；默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色；旧 `template_reference.md` 保留但不再作为默认模板。  
 在**已有交底书文件**上补充材料或纠错时，无需说「迭代」——技能会按 `merger.md` / `correction_handler.md` 处理；细则见 [SKILL.md](SKILL.md)。
 
 ---
@@ -115,12 +120,14 @@ patent-disclosure-skill/
 │   ├── prior_art_search.md
 │   ├── disclosure_preview.md
 │   ├── disclosure_builder.md
+│   ├── disclosure_builder_yh.md
 │   ├── disclosure_self_check.md
 │   ├── iteration_context.md
 │   ├── merger.md
 │   ├── correction_handler.md
-│   └── template_reference.md
-├── tools/                      # mermaid_render、md_to_docx、docx_to_md、pptx_to_md；国知局 cnipa_epub_*（查新）；iteration_dialog_log 等
+│   ├── template_reference_yh.md
+│   └── template_reference.md        # 历史参考模板，非默认 Step 7 模板
+├── tools/                      # figure_check、mermaid_render、md_to_docx、docx_to_md、pptx_to_md；国知局 cnipa_epub_*（查新）；iteration_dialog_log 等
 ├── docs/                       # PRD、仓库结构说明、运行效果截图（效果例-*.jpg）
 ├── examples/                   # 原材料示例（如 example_batch_job_scheduler/knowledge/）
 ├── outputs/                    # 用户产出，整目录 .gitignore
@@ -155,11 +162,12 @@ patent-disclosure-skill/
 
 - [技能入口与 Agent 流程](SKILL.md)（触发条件、`prompts/` 映射、工具表）
 - [详细安装说明](INSTALL.md)（Claude Code / Cursor 路径）
-- [图示与转换脚本](tools/README.md)（mermaid / mmdc、Word 导出、国知局 epub 查新工具）
+- [图示与转换脚本](tools/README.md)（Images 2.0 图示由 Agent 环境提供；mermaid / mmdc 可作降级图示与 Word 导出链路；国知局 epub 查新工具）
 - [示例案件与原材料说明](examples/README.md)
 - [产品流程与目录约定](docs/PRD.md)
 - [工程结构说明](docs/skill-structure.md)
-- [交底书模版细则](prompts/template_reference.md)
+- [YH 默认交底书模版细则](prompts/template_reference_yh.md)
+- [历史交底书模版参考](prompts/template_reference.md)
 
 ---
 

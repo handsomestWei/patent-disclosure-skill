@@ -123,6 +123,27 @@ python3 tools/math_render.py -i draft.md -o out.md --assets-dir math_figures
 
 ---
 
+## figure_check.py — 第 13 章附图一致性校验
+
+在定稿 Word 前运行，检查**第 13 章附图**是否和其他章节提及图号完全对应，避免图号、图注、附图说明、附图标记表或图片文件路径出错。
+
+```bash
+python3 tools/figure_check.py outputs/case/一种XXX方法及系统_20260629120000.md
+```
+
+脚本会校验：
+
+- 图片引用是否只集中在第 13 章；
+- 其他章节提及的图号是否均在第 13 章定义；
+- 第 13 章图片文件是否存在；
+- 图片下方是否有对应图注；
+- 附图说明是否列出对应图号；
+- 是否存在附图标记表。
+
+通过时输出 `FIGURE_CHECK_OK`，失败时输出 `FIGURE_CHECK_FAIL` 并逐条列出问题。脚本只做硬一致性校验；图示内容是否准确仍须结合图示规划表、正文技术逻辑和附图标记人工/Agent 复核。
+
+---
+
 ## md_to_docx.py — Markdown → Word
 
 将交底书 Markdown 转为 `.docx`，**`#`–`######` 映射为 Word 内置「标题 1」–「标题 9」**，正文为宋体 10.5pt，代码块为 Consolas，便于交给代理人或所内用 Word 修订。

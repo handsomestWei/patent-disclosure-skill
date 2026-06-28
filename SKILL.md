@@ -11,10 +11,15 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 
 本技能覆盖 **专利点挖掘** → **查新与差异化** → **交底书生成** → **自检完善** 全流程；分步指令在 **`prompts/`**，每步执行前 **`Read`** 对应文件，与步骤的对照见「Prompt 文件映射」。
 
+## 核心目标
+
+整篇交底书的核心目标不是把材料写长，而是先做好**检索查重**，坚决**避开已有专利点**，再基于差异化分析提出建议、提出**反问**，必要时借鉴**其他行业类似专利**的解题思路，挖掘可保护的**新的金点子**。最终正文必须精简不冗长，但要写清楚专利逻辑思路，并**严格遵守 YH 15 项**模板。
+
 ## 环境与约定
 
 - **语言**：默认与用户语种一致；专利与法律术语采用行业常用表述。
-- **图示定稿（Step 7）**：**3.2**/**3.4** 用 fenced **mermaid**；执行方式、**`mmdc`** 安装与降级规则见下表「交底书定稿交付」行及 **`tools/README.md`**。
+- **图示定稿（Step 7）**：默认按 YH 15 项模板生成交付给专业专利团队继续加工的技术底稿；由 LLM 规划图示、生成 Images 2.0 提示词、将图示保存到交付目录 **`images/`** 后集中写入第 13 章；附图统一放在第 13 章，实施方式用纯文字描述；默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色；Images 2.0 不可用时按 `disclosure_builder.md` 的降级规则处理。
+- **默认模板**：Step 7 默认读取 **`prompts/disclosure_builder.md + template_reference_yh.md`**；原 **`template_reference.md`** 仅作为历史参考保留，不再作为默认交底书模板，且不要覆盖。
 
 ---
 
@@ -44,7 +49,9 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 | PowerPoint（.pptx）→ Markdown + 抽取图片（扫描前） | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/pptx_to_md.py --input {path}.pptx --output {dir}/{name}.md`；默认 `{name}_media/`；需 `pip install -r requirements.txt`（含 python-pptx）；**旧版 .ppt 不支持**，请先另存为 `.pptx`；图表/SmartArt 等若未以图片形状嵌入则可能仅能从备注或另行导出补全 |
 | 罗列目录、按名找文件 | 目录列举 / 按文件名搜索 |
 | 联网查新（Step 5） | 执行前 **`Read`** `prompts/prior_art_search.md`。**中国专利公布公告**：优先 **`Bash`** 运行 `cnipa_epub_search.py`；**须在生成命令前**归纳 **2～8 个相关度高的语义块**；**执行时须分多次调用**，**每次仅传一个**词块，**自行按 `pub_number` 合并**多轮 `EPUB_HITS_JSON`（勿单次工具调用堆多个 argv，见该 prompt）。一步拉取+解析、**不写 HTML 落盘**；须 **`pip install -r tools/requirements-cnipa.txt`** 且 **`python -m playwright install chromium`**。**`abstract` 规定必用**同该 prompt。需整句一次 AND 或保存 HTML 时用 `cnipa_epub_crawler.py`；异常或无果再 **WebSearch** |
-| 交底书定稿交付（**须同时** .md + .docx） | **3.2** 系统框图与 **3.4** 流程图均用 fenced ``mermaid``，**不要** ASCII 文字流程图/框图。定稿执行 **`tools/mermaid_render.py`**：mermaid 转 PNG（失败块保留围栏）后默认生成同名 **.docx**；若 Word 失败，按 stderr 提示手动运行 **`md_to_docx.py`**。详见 **`tools/README.md`** |
+| 交底书定稿交付（**须同时** .md + .docx） | 默认使用 YH 15 项模板与 Images 2.0 图示规范；图示文件放入交付目录 **`images/`**，按图示顺序命名，统一在第 13 章用普通 Markdown 图片引用后再生成 Word；附图统一放在第 13 章，默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色。若使用 mermaid 降级，执行 **`tools/mermaid_render.py`**：mermaid 转 PNG 后默认生成同名 **.docx**；若 Word 失败，按 stderr 提示手动运行 **`md_to_docx.py`**。详见 **`tools/README.md`** |
+| 附图一致性校验 | 定稿 Word 前优先执行 **`tools/figure_check.py <交底书.md>`**；校验**第 13 章附图**、其他章节提及图号、图注、附图说明、附图标记表和图片文件是否存在，确保图号完全对应。脚本只做硬一致性校验；图示内容是否准确仍须结合图示规划表和正文技术逻辑人工/Agent 复核 |
+| 旧模板参考 | `prompts/template_reference.md` 仅作为历史参考保留；默认 Step 7 不再读取旧模板 |
 | 保存交底书路径 | 写入用户指定路径；未指定时可建议 `./outputs/{案件标识}/`；**凡交付的** `.md` / `.docx` 须为 **`{案件名}_{YYYYMMDDHHmmss}`**（§7.3 第 5 点，**含首次定稿与迭代**），勿默认覆盖旧稿；`outputs/` 整目录默认由 `.gitignore` 忽略 |
 | 迭代对话留档 | 每轮 **merger / correction** 交付后，在案件目录追加 **`交底书修订对话记录.md`**（**`tools/iteration_dialog_log.py`** 或等价手工），见 **`prompts/iteration_context.md`** |
 
@@ -59,7 +66,8 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 | Step 3–4 | `prompts/patent_points_analyzer.md` | 候选专利点、融合与选定 |
 | Step 5 | `prompts/prior_art_search.md` | 联网查新与分析要求 |
 | Step 6 | `prompts/disclosure_preview.md` | 全文前的摘要预览 |
-| Step 7 | `prompts/disclosure_builder.md` + `prompts/template_reference.md` | 交底书结构、脱敏、**符号与公式体例（§7.7）**与图示规范；**mermaid 与 3.4.1 符号/公式范例在 template_reference** |
+| Step 7 | `prompts/disclosure_builder.md` + `prompts/template_reference_yh.md` | 默认 YH 15 项技术底稿结构、Images 2.0 图示提示词、`images/` 图示目录、附图说明与附图标记表；附图统一放在第 13 章，默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色；符号与公式体例仍见 `disclosure_builder.md` §7.7 |
+| Step 7（兼容入口） | `prompts/disclosure_builder_yh.md` | 兼容已明确点名 YH 增强模板的旧对话入口；默认流程仍以 `disclosure_builder.md + template_reference_yh.md` 为准 |
 | Step 8 | `prompts/disclosure_self_check.md` | 内部自检，不写入正文 |
 | 迭代 | `prompts/iteration_context.md` | 迭代意图、落盘命名、**修订对话记录 md**（含对话/记录时间） |
 | 迭代 | `prompts/merger.md` | 新材料增量合并；**文首含门禁**；输出 `{案件名}_{时间戳}.md`/`.docx` |
@@ -74,7 +82,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 3. **`Read`** `patent_points_analyzer.md` → 执行 Step 3–4  
 4. **`Read`** `prior_art_search.md` → 执行 Step 5  
 5. **`Read`** `disclosure_preview.md` → 执行 Step 6；用户可跳过  
-6. **`Read`** `disclosure_builder.md` 与 **`Read`** `template_reference.md` → 执行 Step 7（**首次交付**的 `.md`/`.docx` 亦须 **`{案件名}_{YYYYMMDDHHmmss}`**，§7.3 第 5 点）；交付对话中**须**按 **`disclosure_builder.md` §7.6** 补充「权利要求偏向点」建议交互（**仅对话**，不入正文）  
+6. **`Read`** `disclosure_builder.md` 与 **`Read`** `template_reference_yh.md` → 执行默认 Step 7（**首次交付**的 `.md`/`.docx` 亦须 **`{案件名}_{YYYYMMDDHHmmss}`**，§7.3 第 5 点）；图示按 Images 2.0 规划写入交付目录 `images/`，统一放在第 13 章，正文引用、图注、附图说明和附图标记保持一致；交付对话中**须**按 **`disclosure_builder.md` §7.6** 补充「权利要求偏向点」建议交互（**仅对话**，不入正文）  
 7. **`Read`** `disclosure_self_check.md` → 内部执行 Step 8，修订后交付  
 
 **禁止**：交底书正文中包含「自检清单」章节；自检仅内部使用。
@@ -85,7 +93,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 
 **启用方式**：根据用户**自然语言意图**判断（见上文「触发条件」），**不要求**固定关键词，**默认不**为「是否迭代」打断用户。
 
-- **补充材料 / 扩展章节**或 **§7.6 第五章权利要求书式强化（用户已声明侧重点）**：`Read` → `iteration_context.md` → `merger.md`；合并结果**另存为**带时间戳的 `.md`/`.docx`（§7.3 第 5 点）；**追加** `交底书修订对话记录.md`（`iteration_dialog_log.py` 或手工）；完成后**必须**输出「合并摘要」留档；若本轮亦为定稿交付，**仍建议**简短附带 §7.6 类引导  
+- **补充材料 / 扩展章节**或 **§7.6 第 15 章权利要求书式强化（用户已声明侧重点）**：`Read` → `iteration_context.md` → `merger.md`；合并结果**另存为**带时间戳的 `.md`/`.docx`（§7.3 第 5 点）；**追加** `交底书修订对话记录.md`（`iteration_dialog_log.py` 或手工）；完成后**必须**输出「合并摘要」留档；若本轮亦为定稿交付，**仍建议**简短附带 §7.6 类引导  
 - **指出错误 / 与事实或参数不符**：`Read` → `iteration_context.md` → `correction_handler.md`；纠正结果**另存为**带时间戳的 `.md`/`.docx`；**追加**对话记录；完成后**必须**输出「纠正摘要」留档；定稿交付时**还须**按 **`disclosure_builder.md` §7.6** 附「权利要求偏向点」引导（见 **`correction_handler.md`** 末尾）  
 
 主流程 Step 7→8 的 **`disclosure_self_check.md`** 仍在新稿定稿路径上内部执行。
@@ -100,7 +108,10 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 □ 执行 merger / correction_handler 后，已在对话中输出该文件要求的留档摘要（合并摘要 / 纠正摘要）；案件目录已追加 **`交底书修订对话记录.md`**（或等价日志）
 □ 查新完成且写入 1.1 与区别论述（符合 `prior_art_search.md`：**优先** `tools/cnipa_epub_search.py`，**国知局侧已分多次调用、每轮一词，并已自行合并** `EPUB_HITS_JSON`；**`abstract` 必用且已充分理解后再概括**；异常或无果再 **WebSearch**）
 □ 除用户明确跳过外，完成摘要预览
-□ 脱敏、mermaid（定稿均已渲染为 PNG）、章节引用符合 template_reference；含公式时 **3.4.1 符号表、§7.7 体例**（维度下标、无字母多义、LaTeX 分隔符统一）及 **3.5 符号列同形** 已满足；**已交付 .md 与 .docx**，且**文件名符合 §7.3 第 5 点**（**凡交付均含**时间戳后缀）；**正文无**技能/示例仓库类文末脚注
+□ 已 Read `disclosure_builder.md` 与 `template_reference_yh.md`；YH 15 项章节完整；图示已进入 `images/`，附图统一放在第 13 章；默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色；正文引用、图注、附图说明和附图标记表一致；原 `template_reference.md` 仅作历史参考且未被覆盖
+□ 定稿 Word 前已运行 `tools/figure_check.py`；第 13 章附图、其他章节提及图号、图注、附图说明、附图标记表和图片文件是否存在均已校验，图号完全对应；图示内容是否准确已按图示规划表与正文技术逻辑复核
+□ 已完成检索查重并坚决避开已有专利点；已基于差异化提出建议、提出反问，必要时借鉴其他行业类似专利，挖掘新的金点子；正文精简不冗长且严格遵守 YH 15 项
+□ 脱敏、Images 2.0 图示或 mermaid 降级图（定稿均为可嵌入图片）、章节引用符合 template_reference_yh；含公式时 **符号表、§7.7 体例**（维度下标、无字母多义、LaTeX 分隔符统一）已满足；**已交付 .md 与 .docx**，且**文件名符合 §7.3 第 5 点**（**凡交付均含**时间戳后缀）；**正文无**技能/示例仓库类文末脚注
 □ 定稿类对话已含 **`disclosure_builder.md` §7.6**「权利要求偏向点」建议交互（**不入正文**、**不捏造**未在稿内出现的保护取向）；迭代再走 merger 时见 **`iteration_context.md`** 表格补充行
 □ 自检在后台完成，正文无自检清单章节；含公式时已按 **`disclosure_self_check.md` §8.2** 复核**公式正确性与公式逻辑**（有误已在 Step 8 直接改稿）
 ```
