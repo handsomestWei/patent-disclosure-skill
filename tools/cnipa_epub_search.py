@@ -18,6 +18,7 @@
 若需**整句一次**向公布站提交（站内 AND），请改用 ``cnipa_epub_crawler.py`` 单传一句。
 
 需已安装：pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium
+或设 BROWSER_BACKEND=agent-browser 并安装 agent-browser（npm i -g agent-browser && agent-browser install）
 
 用法：
 
@@ -30,7 +31,7 @@
 若需将结果页 HTML 保存到磁盘，请改用 ``cnipa_epub_crawler.py``；若只对已有 HTML 文件做解析，
 请用 ``cnipa_epub_parse.py``。
 
-环境变量：与 ``cnipa_epub_crawler.py`` 相同（如 ``EPUB_WAF_MAX_WAIT_SEC``、``PLAYWRIGHT_HEADED``）。
+环境变量：与 ``cnipa_epub_crawler.py`` 相同（如 ``EPUB_WAF_MAX_WAIT_SEC``、``PLAYWRIGHT_HEADED``、``BROWSER_BACKEND``）。
 """
 from __future__ import annotations
 
@@ -103,14 +104,25 @@ def main(argv: list[str] | None = None) -> int:
 
     os.environ.setdefault("EPUB_WAF_MAX_WAIT_SEC", "180")
 
-    try:
-        import playwright  # noqa: F401
-    except ImportError:
-        print(
-            "ERROR: pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium",
-            file=sys.stderr,
-        )
-        return 1
+    backend = os.environ.get("BROWSER_BACKEND", "").strip().lower()
+    if backend == "agent-browser":
+        from shutil import which
+
+        if not which("agent-browser"):
+            print(
+                "ERROR: agent-browser not found in PATH; install: npm i -g agent-browser && agent-browser install",
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        try:
+            import playwright  # noqa: F401
+        except ImportError:
+            print(
+                "ERROR: pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium",
+                file=sys.stderr,
+            )
+            return 1
 
     from cnipa_epub_crawler import search_epub_keyword
     from cnipa_epub_parse import hits_to_jsonable

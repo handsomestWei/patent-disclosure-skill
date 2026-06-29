@@ -3,6 +3,7 @@
 串联验证：与同目录能力对齐——运行 `tools/cnipa_epub_search.py`（一步：爬取 + 解析，**不落盘 HTML**）。
 
 需已安装：pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium
+或设 BROWSER_BACKEND=agent-browser 并安装 agent-browser（npm i -g agent-browser && agent-browser install）
 
 在仓库根目录执行：
 
@@ -32,11 +33,19 @@ def main(argv: list[str] | None = None) -> int:
         extra = ["知识图谱"]
     os.environ.setdefault("EPUB_WAF_MAX_WAIT_SEC", "180")
 
-    try:
-        import playwright  # noqa: F401
-    except ImportError:
-        print("请先安装: pip install -r tools/requirements-cnipa.txt", file=sys.stderr)
-        return 1
+    backend = os.environ.get("BROWSER_BACKEND", "").strip().lower()
+    if backend == "agent-browser":
+        from shutil import which
+
+        if not which("agent-browser"):
+            print("请先安装: npm i -g agent-browser && agent-browser install", file=sys.stderr)
+            return 1
+    else:
+        try:
+            import playwright  # noqa: F401
+        except ImportError:
+            print("请先安装: pip install -r tools/requirements-cnipa.txt", file=sys.stderr)
+            return 1
 
     from cnipa_epub_search import main as search_main
 

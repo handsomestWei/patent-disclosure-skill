@@ -78,3 +78,12 @@ python -m playwright install chromium
 **Windows 终端中文**：`cnipa_epub_search.py` / `cnipa_epub_crawler.py` 已对 stdout/stderr 尝试 **UTF-8**（`reconfigure`）。若仍乱码，可在运行前执行 **`chcp 65001`**，或设置环境变量 **`PYTHONUTF8=1`**，以便复制 **`EPUB_HITS_JSON:`** 一行给 Agent 时不误判为失败。
 
 与主流程 `requirements.txt` **独立**；未安装时 Step 5 仍可按该 prompt 降级为 **WebSearch**（如 Google 学术）。
+
+**可选替代：agent-browser 后端**（无需 Playwright / Chromium）：
+
+```bash
+npm install -g agent-browser
+agent-browser install   # 首次：下载 Chrome
+```
+
+安装后将环境变量 **`BROWSER_BACKEND`** 设为 **`agent-browser`** 即可；`cnipa_epub_search.py` / `cnipa_epub_crawler.py` 会自动通过 agent-browser CLI 完成检索，输出格式不变。未设置或设为 `playwright` 时仍走原 Playwright 路径。

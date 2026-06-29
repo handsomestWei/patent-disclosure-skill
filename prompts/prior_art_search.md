@@ -34,11 +34,21 @@
    python3 ${CLAUDE_SKILL_DIR}/tools/cnipa_epub_search.py 词甲
    ```
 
+   **可选替代：agent-browser 后端**（无需 Playwright / Chromium）：
+
+   ```bash
+   npm install -g agent-browser
+   agent-browser install   # 首次：下载 Chrome
+   # 设置环境变量后，cnipa_epub_search.py 自动使用 agent-browser CLI
+   export BROWSER_BACKEND=agent-browser
+   python3 ${CLAUDE_SKILL_DIR}/tools/cnipa_epub_search.py 词甲
+   ```
+
    - **合并责任在 Agent**：每次调用解析 **stdout** 上**唯一一行** **`EPUB_HITS_JSON:`** 后的 JSON 数组；在推理中按 **`pub_number`** 为主键去重合并（无则 **`link`**，再否则可用标题前缀），得到**一份**总表后再写入查新笔记与 1.1。
    - **`cnipa_epub_search.py`** 若人工单次传入多词，会按空白拆段、进程内**一段一查**并去重（**stderr** 可出现 **`EPUB_MERGE:`**）；与 Agent **分多次调用**策略无关。
    - 成功时 **stdout 仅一行** **`EPUB_HITS_JSON:`** + JSON 数组（UTF-8，含中文 `abstract`）；**`EPUB_MERGE:`** / **`EPUB_NOTE:`** / **`EPUB_HINT:`** 等在 **stderr** 且为 **ASCII**（减轻 PowerShell 把中文 stderr 当成错误流）。解析命中时请以 **stdout 该行 JSON 为准**，勿因 stderr 或终端编码误判「未命中」而不必要地降级 WebSearch。Windows 乱码与 PowerShell 注意见 **`INSTALL.md`**（`chcp 65001` / `PYTHONUTF8=1`、勿滥用 `2>&1`）。
    - 将 JSON 中**可核验**的公开号、标题、**国知局站点内详情链接**写入查新笔记与 1.1（见下 **`abstract` 必用**）。
-   - **降级条件**（满足任一则进入 **B**）：命令非 0 退出、超时、无 Playwright、**`EPUB_HITS_JSON` 为空数组**、或条目经人工核对明显与主题无关。
+   - **降级条件**（满足任一则进入 **B**）：命令非 0 退出、超时、无 Playwright 且未设 `BROWSER_BACKEND=agent-browser`、**`EPUB_HITS_JSON` 为空数组**、或条目经人工核对明显与主题无关。
 
 5. **`abstract` 字段（国知局条目，规定必用）**
 
