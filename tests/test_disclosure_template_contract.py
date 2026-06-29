@@ -70,6 +70,18 @@ def test_step7_default_uses_yh_template_and_keeps_legacy_as_reference() -> None:
     assert "删除第 14 章，不写“无”" not in yh_builder
 
 
+def test_skill_identity_uses_yh_name_and_alias() -> None:
+    skill = read_text("SKILL.md")
+    readme = read_text("README.md")
+    install = read_text("INSTALL.md")
+
+    assert "name: yh-patent-disclosure-skill" in skill
+    assert "/yh-patent-disclosure-skill" in skill
+    assert "YH-patent-disclosure-skill/" in readme
+    assert "yh-patent-disclosure-skill" in install
+    assert "name: yh-patent-disclosure-skill" in install
+
+
 def test_self_check_and_docs_cover_image_consistency_contract() -> None:
     self_check = read_text("prompts/disclosure_self_check.md")
     readme = read_text("README.md")
@@ -161,6 +173,23 @@ def test_skill_emphasizes_prior_art_avoidance_and_new_patent_ideas() -> None:
         assert "其他行业类似专利" in text
         assert "新的金点子" in text
         assert "严格遵守 YH 15 项" in text
+
+
+def test_disclosure_flow_invokes_humanizer_without_changing_patent_boundaries() -> None:
+    skill = read_text("SKILL.md")
+    builder = read_text("prompts/disclosure_builder.md")
+    self_check = read_text("prompts/disclosure_self_check.md")
+
+    for text in (skill, builder, self_check):
+        assert "humanizer-zh" in text
+        assert "去 AI 痕迹" in text
+
+    for text in (skill, builder):
+        assert "技术事实" in text
+        assert "查新结论" in text
+        assert "公式参数" in text
+        assert "附图标记" in text
+        assert "保护边界" in text
 
 
 def test_figure_check_tool_is_documented_in_skill_contract() -> None:

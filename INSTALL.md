@@ -8,45 +8,45 @@
 
 ```bash
 mkdir -p .claude/skills
-git clone <本仓库 URL> .claude/skills/patent-disclosure-skill
+git clone <本仓库 URL> .claude/skills/yh-patent-disclosure-skill
 ```
 
-或使用本地路径复制到 `.claude/skills/patent-disclosure-skill`。
+或使用本地路径复制到 `.claude/skills/yh-patent-disclosure-skill`。
 
 运行时环境通常会设置 **`CLAUDE_SKILL_DIR`** 指向该技能目录；`SKILL.md` 中的 `${CLAUDE_SKILL_DIR}/prompts/...` 即解析到此路径。
 
 ## Cursor
 
-Cursor 支持 [Agent Skills](https://www.cursor.com/docs/context/skills) 约定：每个技能是一个**子文件夹**，内含根级 `SKILL.md`（`name` 字段须与文件夹名一致，本仓库为 `patent-disclosure-skill`）。可将**本仓库完整内容**（含 `prompts/`、`tools/` 等）放在下列位置之一，重启 Cursor 后在 **Settings → Rules** 中查看是否已被发现；亦可用 Agent 输入 `/` 后选择技能名。
+Cursor 支持 [Agent Skills](https://www.cursor.com/docs/context/skills) 约定：每个技能是一个**子文件夹**，内含根级 `SKILL.md`（`name` 字段须与文件夹名一致，本仓库为 `yh-patent-disclosure-skill`）。可将**本仓库完整内容**（含 `prompts/`、`tools/` 等）放在下列位置之一，重启 Cursor 后在 **Settings → Rules** 中查看是否已被发现；亦可用 Agent 输入 `/` 后选择技能名。
 
 ### 用户主目录（全局，所有项目可用）
 
 | 系统 | 推荐路径 |
 |------|----------|
-| Windows | `%USERPROFILE%\.cursor\skills\patent-disclosure-skill\`（即 `C:\Users\<用户名>\.cursor\skills\patent-disclosure-skill\`） |
-| macOS / Linux | `~/.cursor/skills/patent-disclosure-skill/` |
+| Windows | `%USERPROFILE%\.cursor\skills\yh-patent-disclosure-skill\`（即 `C:\Users\<用户名>\.cursor\skills\yh-patent-disclosure-skill\`） |
+| macOS / Linux | `~/.cursor/skills/yh-patent-disclosure-skill/` |
 
 示例（将仓库克隆到全局技能目录）：
 
 ```bash
 mkdir -p ~/.cursor/skills
-git clone <本仓库 URL> ~/.cursor/skills/patent-disclosure-skill
+git clone <本仓库 URL> ~/.cursor/skills/yh-patent-disclosure-skill
 ```
 
 Windows（PowerShell）：
 
 ```powershell
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.cursor\skills"
-git clone <本仓库 URL> "$env:USERPROFILE\.cursor\skills\patent-disclosure-skill"
+git clone <本仓库 URL> "$env:USERPROFILE\.cursor\skills\yh-patent-disclosure-skill"
 ```
 
 ### 项目目录（仅当前仓库）
 
 将本技能放在当前工作区下的：
 
-`<项目根>/.cursor/skills/patent-disclosure-skill/`
+`<项目根>/.cursor/skills/yh-patent-disclosure-skill/`
 
-（同样需包含完整仓库文件树，且 **`SKILL.md` 中 `name: patent-disclosure-skill` 与文件夹名一致**。）
+（同样需包含完整仓库文件树，且 **`SKILL.md` 中 `name: yh-patent-disclosure-skill` 与文件夹名一致**。）
 
 ### 与「仅打开文件夹」等价关系
 

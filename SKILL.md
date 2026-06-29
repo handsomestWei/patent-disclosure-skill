@@ -1,7 +1,7 @@
 ---
-name: patent-disclosure-skill
+name: yh-patent-disclosure-skill
 description: "通用中国专利挖掘发现与交底书生成全流程：扫描项目文档挖掘专利点、讨论融合、基于脱敏模版生成技术交底书、联网查新、生成后自检含逻辑闭环与公式参数一致性。| Patent mining, disclosure drafting, prior-art search, and consistency self-check."
-version: "1.8.9"
+version: "1.8.10"
 user-invocable: true
 argument-hint: "[可选：项目路径或技术主题关键词]"
 allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
@@ -20,6 +20,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 - **语言**：默认与用户语种一致；专利与法律术语采用行业常用表述。
 - **图示定稿（Step 7）**：默认按 YH 15 项模板生成交付给专业专利团队继续加工的技术底稿；由 LLM 规划图示、生成 Images 2.0 提示词、将图示保存到交付目录 **`images/`** 后集中写入第 13 章；附图统一放在第 13 章，实施方式用纯文字描述；默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色；Images 2.0 不可用时按 `disclosure_builder.md` 的降级规则处理。
 - **默认模板**：Step 7 默认读取 **`prompts/disclosure_builder.md + template_reference_yh.md`**；原 **`template_reference.md`** 仅作为历史参考保留，不再作为默认交底书模板，且不要覆盖。
+- **人性化润色**：生成或迭代专利交底书定稿时，须在 Step 8 自检阶段调用 **`humanizer-zh`** 对正文做去 AI 痕迹润色；仅清理宣传腔、空泛套话、机械排比和过度连接词，**不得**改动技术事实、查新结论、公式参数、附图标记、章节结构或保护边界。若当前会话尚未加载该技能，按其 `SKILL.md` 的核心检查项执行等效人工审阅，并提示需重启 Codex 以自动识别新技能。
 
 ---
 
@@ -28,7 +29,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 在用户使用以下任一方式时启用本技能：
 
 - 明确提及：专利挖掘、专利点、技术交底书、交底书、专利交底书、查新、现有技术对比等
-- 斜杠或简短指令：如 `/patent-disclosure-skill`、`/patent-disclosure`、`/交底书`
+- 斜杠或简短指令：如 `/yh-patent-disclosure-skill`、`/patent-disclosure-skill`、`/patent-disclosure`、`/交底书`
 - **迭代模式（按意图识别）**：当用户意图明显是在**已有交底书或上一轮输出**上继续工作（如改章节、补实施例、补材料、修正参数/事实、调整表述等），**无需**用户写出「迭代」等固定词，也**不必**询问是否进入迭代——Agent 应 **`Read`** **`prompts/iteration_context.md`**，再 **`Read`** `prompts/merger.md`（侧重**新材料、扩展合并**）或 `prompts/correction_handler.md`（侧重**纠错、与事实或风格不符**），**严格按该文件开头的「执行门禁」**（优先执行，不可跳过）**做完合并或纠正**，**另存为新文件**：**`{案件名}_{YYYYMMDDHHmmss}.md`** 与同名 **`.docx`**（与首次定稿同一命名规则，见 **`disclosure_builder.md` §7.3 第 5 点**），**不覆盖**旧稿（除非用户明确要求）。**禁止**在迭代意图已成立时默认回到 Step 3–4 专利点全文分析（除非用户明确要求重新挖掘专利点）。对话中**已出现**交底书路径、附件或上文刚交付的草稿时，优先按迭代处理。
 
 ---
@@ -49,7 +50,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 | PowerPoint（.pptx）→ Markdown + 抽取图片（扫描前） | `Bash` → `python3 ${CLAUDE_SKILL_DIR}/tools/pptx_to_md.py --input {path}.pptx --output {dir}/{name}.md`；默认 `{name}_media/`；需 `pip install -r requirements.txt`（含 python-pptx）；**旧版 .ppt 不支持**，请先另存为 `.pptx`；图表/SmartArt 等若未以图片形状嵌入则可能仅能从备注或另行导出补全 |
 | 罗列目录、按名找文件 | 目录列举 / 按文件名搜索 |
 | 联网查新（Step 5） | 执行前 **`Read`** `prompts/prior_art_search.md`。**中国专利公布公告**：优先 **`Bash`** 运行 `cnipa_epub_search.py`；**须在生成命令前**归纳 **2～8 个相关度高的语义块**；**执行时须分多次调用**，**每次仅传一个**词块，**自行按 `pub_number` 合并**多轮 `EPUB_HITS_JSON`（勿单次工具调用堆多个 argv，见该 prompt）。一步拉取+解析、**不写 HTML 落盘**；须 **`pip install -r tools/requirements-cnipa.txt`** 且 **`python -m playwright install chromium`**。**`abstract` 规定必用**同该 prompt。需整句一次 AND 或保存 HTML 时用 `cnipa_epub_crawler.py`；异常或无果再 **WebSearch** |
-| 交底书定稿交付（**须同时** .md + .docx） | 默认使用 YH 15 项模板与 Images 2.0 图示规范；图示文件放入交付目录 **`images/`**，按图示顺序命名，统一在第 13 章用普通 Markdown 图片引用后再生成 Word；附图统一放在第 13 章，默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色。若使用 mermaid 降级，执行 **`tools/mermaid_render.py`**：mermaid 转 PNG 后默认生成同名 **.docx**；若 Word 失败，按 stderr 提示手动运行 **`md_to_docx.py`**。详见 **`tools/README.md`** |
+| 交底书定稿交付（**须同时** .md + .docx） | 默认使用 YH 15 项模板与 Images 2.0 图示规范；图示文件放入交付目录 **`images/`**，按图示顺序命名，统一在第 13 章用普通 Markdown 图片引用后再生成 Word；附图统一放在第 13 章，默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色。定稿前在 Step 8 调用 **`humanizer-zh`** 做去 AI 痕迹润色，但不得改变技术事实、查新结论、公式参数、附图标记或保护边界。若使用 mermaid 降级，执行 **`tools/mermaid_render.py`**：mermaid 转 PNG 后默认生成同名 **.docx**；若 Word 失败，按 stderr 提示手动运行 **`md_to_docx.py`**。详见 **`tools/README.md`** |
 | 附图一致性校验 | 定稿 Word 前优先执行 **`tools/figure_check.py <交底书.md>`**；校验**第 13 章附图**、其他章节提及图号、图注、附图说明、附图标记表和图片文件是否存在，确保图号完全对应。脚本只做硬一致性校验；图示内容是否准确仍须结合图示规划表和正文技术逻辑人工/Agent 复核 |
 | 旧模板参考 | `prompts/template_reference.md` 仅作为历史参考保留；默认 Step 7 不再读取旧模板 |
 | 保存交底书路径 | 写入用户指定路径；未指定时可建议 `./outputs/{案件标识}/`；**凡交付的** `.md` / `.docx` 须为 **`{案件名}_{YYYYMMDDHHmmss}`**（§7.3 第 5 点，**含首次定稿与迭代**），勿默认覆盖旧稿；`outputs/` 整目录默认由 `.gitignore` 忽略 |
@@ -83,7 +84,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 4. **`Read`** `prior_art_search.md` → 执行 Step 5  
 5. **`Read`** `disclosure_preview.md` → 执行 Step 6；用户可跳过  
 6. **`Read`** `disclosure_builder.md` 与 **`Read`** `template_reference_yh.md` → 执行默认 Step 7（**首次交付**的 `.md`/`.docx` 亦须 **`{案件名}_{YYYYMMDDHHmmss}`**，§7.3 第 5 点）；图示按 Images 2.0 规划写入交付目录 `images/`，统一放在第 13 章，正文引用、图注、附图说明和附图标记保持一致；交付对话中**须**按 **`disclosure_builder.md` §7.6** 补充「权利要求偏向点」建议交互（**仅对话**，不入正文）  
-7. **`Read`** `disclosure_self_check.md` → 内部执行 Step 8，修订后交付  
+7. **`Read`** `disclosure_self_check.md` → 内部执行 Step 8；其中须调用 **`humanizer-zh`** 或执行等效去 AI 痕迹审阅，修订后交付  
 
 **禁止**：交底书正文中包含「自检清单」章节；自检仅内部使用。
 
@@ -111,6 +112,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 □ 已 Read `disclosure_builder.md` 与 `template_reference_yh.md`；YH 15 项章节完整；图示已进入 `images/`，附图统一放在第 13 章；默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色；正文引用、图注、附图说明和附图标记表一致；原 `template_reference.md` 仅作历史参考且未被覆盖
 □ 定稿 Word 前已运行 `tools/figure_check.py`；第 13 章附图、其他章节提及图号、图注、附图说明、附图标记表和图片文件是否存在均已校验，图号完全对应；图示内容是否准确已按图示规划表与正文技术逻辑复核
 □ 已完成检索查重并坚决避开已有专利点；已基于差异化提出建议、提出反问，必要时借鉴其他行业类似专利，挖掘新的金点子；正文精简不冗长且严格遵守 YH 15 项
+□ 定稿前已调用 `humanizer-zh` 或按其规则完成等效去 AI 痕迹审阅；已清理宣传腔、空泛套话、机械排比和过度连接词，且未改变技术事实、查新结论、公式参数、附图标记、章节结构或保护边界
 □ 脱敏、Images 2.0 图示或 mermaid 降级图（定稿均为可嵌入图片）、章节引用符合 template_reference_yh；含公式时 **符号表、§7.7 体例**（维度下标、无字母多义、LaTeX 分隔符统一）已满足；**已交付 .md 与 .docx**，且**文件名符合 §7.3 第 5 点**（**凡交付均含**时间戳后缀）；**正文无**技能/示例仓库类文末脚注
 □ 定稿类对话已含 **`disclosure_builder.md` §7.6**「权利要求偏向点」建议交互（**不入正文**、**不捏造**未在稿内出现的保护取向）；迭代再走 merger 时见 **`iteration_context.md`** 表格补充行
 □ 自检在后台完成，正文无自检清单章节；含公式时已按 **`disclosure_self_check.md` §8.2** 复核**公式正确性与公式逻辑**（有误已在 Step 8 直接改稿）
