@@ -19,7 +19,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 
 - **语言**：默认与用户语种一致；专利与法律术语采用行业常用表述。
 - **图示定稿（Step 7）**：默认按 YH 15 项模板生成交付给专业专利团队继续加工的技术底稿；由 LLM 规划图示、生成 Images 2.0 提示词、将图示保存到交付目录 **`images/`** 后集中写入第 13 章；附图统一放在第 13 章，实施方式用纯文字描述；默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色；Images 2.0 不可用时按 `disclosure_builder.md` 的降级规则处理。
-- **默认模板**：Step 7 默认读取 **`prompts/disclosure_builder.md + template_reference_yh.md`**；原 **`template_reference.md`** 仅作为历史参考保留，不再作为默认交底书模板，且不要覆盖。
+- **默认模板**：Step 7 默认读取 **`prompts/disclosure_builder.md + template_reference_yh.md`**，仅按 YH 15 项技术底稿模板生成。
 - **人性化润色**：生成或迭代专利交底书定稿时，须在 Step 8 自检阶段调用 **`humanizer-zh`** 对正文做去 AI 痕迹润色；仅清理宣传腔、空泛套话、机械排比和过度连接词，**不得**改动技术事实、查新结论、公式参数、附图标记、章节结构或保护边界。若当前会话尚未加载该技能，按其 `SKILL.md` 的核心检查项执行等效人工审阅，并提示需重启 Codex 以自动识别新技能。
 
 ---
@@ -52,7 +52,6 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 | 联网查新（Step 5） | 执行前 **`Read`** `prompts/prior_art_search.md`。**中国专利公布公告**：优先 **`Bash`** 运行 `cnipa_epub_search.py`；**须在生成命令前**归纳 **2～8 个相关度高的语义块**；**执行时须分多次调用**，**每次仅传一个**词块，**自行按 `pub_number` 合并**多轮 `EPUB_HITS_JSON`（勿单次工具调用堆多个 argv，见该 prompt）。一步拉取+解析、**不写 HTML 落盘**；须 **`pip install -r tools/requirements-cnipa.txt`** 且 **`python -m playwright install chromium`**。**`abstract` 规定必用**同该 prompt。需整句一次 AND 或保存 HTML 时用 `cnipa_epub_crawler.py`；异常或无果再 **WebSearch** |
 | 交底书定稿交付（**须同时** .md + .docx） | 默认使用 YH 15 项模板与 Images 2.0 图示规范；图示文件放入交付目录 **`images/`**，按图示顺序命名，统一在第 13 章用普通 Markdown 图片引用后再生成 Word；附图统一放在第 13 章，默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色。定稿前在 Step 8 调用 **`humanizer-zh`** 做去 AI 痕迹润色，但不得改变技术事实、查新结论、公式参数、附图标记或保护边界。若使用 mermaid 降级，执行 **`tools/mermaid_render.py`**：mermaid 转 PNG 后默认生成同名 **.docx**；若 Word 失败，按 stderr 提示手动运行 **`md_to_docx.py`**。详见 **`tools/README.md`** |
 | 附图一致性校验 | 定稿 Word 前优先执行 **`tools/figure_check.py <交底书.md>`**；校验**第 13 章附图**、其他章节提及图号、图注、附图说明、附图标记表和图片文件是否存在，确保图号完全对应。脚本只做硬一致性校验；图示内容是否准确仍须结合图示规划表和正文技术逻辑人工/Agent 复核 |
-| 旧模板参考 | `prompts/template_reference.md` 仅作为历史参考保留；默认 Step 7 不再读取旧模板 |
 | 保存交底书路径 | 写入用户指定路径；未指定时可建议 `./outputs/{案件标识}/`；**凡交付的** `.md` / `.docx` 须为 **`{案件名}_{YYYYMMDDHHmmss}`**（§7.3 第 5 点，**含首次定稿与迭代**），勿默认覆盖旧稿；`outputs/` 整目录默认由 `.gitignore` 忽略 |
 | 迭代对话留档 | 每轮 **merger / correction** 交付后，在案件目录追加 **`交底书修订对话记录.md`**（**`tools/iteration_dialog_log.py`** 或等价手工），见 **`prompts/iteration_context.md`** |
 
@@ -109,7 +108,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 □ 执行 merger / correction_handler 后，已在对话中输出该文件要求的留档摘要（合并摘要 / 纠正摘要）；案件目录已追加 **`交底书修订对话记录.md`**（或等价日志）
 □ 查新完成且写入 1.1 与区别论述（符合 `prior_art_search.md`：**优先** `tools/cnipa_epub_search.py`，**国知局侧已分多次调用、每轮一词，并已自行合并** `EPUB_HITS_JSON`；**`abstract` 必用且已充分理解后再概括**；异常或无果再 **WebSearch**）
 □ 除用户明确跳过外，完成摘要预览
-□ 已 Read `disclosure_builder.md` 与 `template_reference_yh.md`；YH 15 项章节完整；图示已进入 `images/`，附图统一放在第 13 章；默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色；正文引用、图注、附图说明和附图标记表一致；原 `template_reference.md` 仅作历史参考且未被覆盖
+□ 已 Read `disclosure_builder.md` 与 `template_reference_yh.md`；YH 15 项章节完整；图示已进入 `images/`，附图统一放在第 13 章；默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色；正文引用、图注、附图说明和附图标记表一致
 □ 定稿 Word 前已运行 `tools/figure_check.py`；第 13 章附图、其他章节提及图号、图注、附图说明、附图标记表和图片文件是否存在均已校验，图号完全对应；图示内容是否准确已按图示规划表与正文技术逻辑复核
 □ 已完成检索查重并坚决避开已有专利点；已基于差异化提出建议、提出反问，必要时借鉴其他行业类似专利，挖掘新的金点子；正文精简不冗长且严格遵守 YH 15 项
 □ 定稿前已调用 `humanizer-zh` 或按其规则完成等效去 AI 痕迹审阅；已清理宣传腔、空泛套话、机械排比和过度连接词，且未改变技术事实、查新结论、公式参数、附图标记、章节结构或保护边界

@@ -10,7 +10,7 @@
 2. **PATH 上的 ``mmdc``**（通常为 ``npm install -g @mermaid-js/mermaid-cli``）；
 3. **Node.js + npx** 临时拉取 ``@mermaid-js/mermaid-cli``（无本地安装时）。
 
-交底书 **3.2 系统框图**与 **3.4 流程图**均使用 fenced mermaid；**不要** ASCII「文字箭头」流程图或框图。
+YH 模板中，mermaid 仅作为 Images 2.0 不可用时的线条图降级来源；最终图示仍应渲染为 PNG 并集中写入第 13 章。**不要** ASCII「文字箭头」流程图或框图。
 
 **降级**：某一围栏 ``mmdc`` 生图失败时**不中断**：该处**保留原** `` ```mermaid`` … `` ``` `` 围栏；其余块照常渲染。仍写出 .md 并**照常尝试** ``md_to_docx.py``（Word 中失败块以代码块形式出现）。
 

@@ -14,7 +14,6 @@
 | `SKILL.md` | 触发条件、工具映射、步骤顺序、`prompts/` 索引 |
 | `prompts/` | 分步模板（录入、扫描、专利点、查新、预览、成文、自检、迭代） |
 | `prompts/template_reference_yh.md` | 默认 YH 15 项技术底稿章节细则、Images 2.0 图示提示词规范、`images/` 目录规则、附图说明与附图标记表；附图统一放在第 13 章，默认白底黑蓝线条，仅在流程状态必要时使用少量绿色/红色 |
-| `prompts/template_reference.md` | 历史交底书章节细则与 mermaid 图示范例；保留但不再作为默认 Step 7 模板 |
 | `prompts/disclosure_builder.md` | 默认 Step 7 成文入口，读取 `template_reference_yh.md` 并保留命名、查新、公式体例、Word 交付规则 |
 | `tools/` | `figure_check.py`、`mermaid_render.py`、`md_to_docx.py`、`docx_to_md.py`、`pptx_to_md.py`、`cnipa_epub_search.py`、`cnipa_epub_crawler.py`、`cnipa_epub_parse.py` 等；mermaid 须 Node；国知局抓取须 Playwright，见 `tools/README.md` |
 | `examples/example_batch_job_scheduler/` | 示例案件：仅 **`knowledge/`** 虚构原材料（专利点 / 交底书等由流程生成到 `outputs/`） |

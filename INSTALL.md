@@ -64,7 +64,7 @@ git clone <本仓库 URL> "$env:USERPROFILE\.cursor\skills\yh-patent-disclosure-
 pip install -r requirements.txt
 ```
 
-交底书定稿须同时产出 **.md + .docx**，且将 **mermaid**（**3.2 系统框图**与 **3.4 流程图**）经 **`tools/mermaid_render.py`** 转为 PNG 嵌入。**mermaid** 须 **Node.js**：在 **`tools/`** 执行 **`npm install`**（含 **`puppeteer`**）；若 **`mmdc`** 报找不到 Chrome，再执行 **`npx puppeteer browsers install chrome-headless-shell`**。详见 **`tools/README.md`**。
+交底书定稿须同时产出 **.md + .docx**。YH 默认图示路径为 Images 2.0 生成图片并集中写入第 13 章；仅在 Images 2.0 不可用或用户明确选择线条图降级时，才使用 **`tools/mermaid_render.py`** 将 mermaid 转为 PNG 嵌入。mermaid 降级须 **Node.js**：在 **`tools/`** 执行 **`npm install`**（含 **`puppeteer`**）；若 **`mmdc`** 报找不到 Chrome，再执行 **`npx puppeteer browsers install chrome-headless-shell`**。详见 **`tools/README.md`**。
 
 ## 可选：国知局公布公告站抓取（Step 5 查新优先路径）
 

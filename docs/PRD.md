@@ -21,7 +21,7 @@ Step 5  联网查新（prior_art_search.md：**优先** tools 中国知局 epub 
         ↓
 Step 6  摘要预览与确认（prompts/disclosure_preview.md）
         ↓
-Step 7  全文交底书（prompts/disclosure_builder.md + template_reference.md）
+Step 7  全文交底书（prompts/disclosure_builder.md + template_reference_yh.md）
         ↓
 Step 8  内部自检（prompts/disclosure_self_check.md）→ 修订后交付
         ↓
@@ -45,7 +45,7 @@ Step 8  内部自检（prompts/disclosure_self_check.md）→ 修订后交付
 
 - Office 原材料（Word/PPT）：使用本仓库 `tools/docx_to_md.py`、`tools/pptx_to_md.py` 转换后再扫描（见 `SKILL.md`）。
 - 交底书正文**不得**包含「自检清单」章节。
-- 脱敏要求见 `disclosure_builder.md` / `template_reference.md`。
+- 脱敏要求见 `disclosure_builder.md` / `template_reference_yh.md`。
 - 查新结论须写入第一章并与技术问题、方案呼应；渠道与著录细则见 `prompts/prior_art_search.md`。
 - 交底书定稿须**同时**交付 Markdown 与 Word；文件名 **`{案件名}_{YYYYMMDDHHmmss}`**（§7.3 第 5 点，含首次与迭代）；`tools/mermaid_render.py` 默认调用 `md_to_docx.py`；Word 失败时允许人工补转（见 `tools/README.md`）。
 

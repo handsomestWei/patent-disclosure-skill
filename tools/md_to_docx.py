@@ -168,7 +168,7 @@ def _formula_image_kind(alt: str, src: str) -> str | None:
 
 
 def _is_diagram_image(alt: str, src: str) -> bool:
-    """mermaid 系统框图 / 流程图等（非公式，用全幅插图尺寸）。"""
+    """mermaid 降级图等非公式图片使用全幅插图尺寸。"""
     a = alt or ""
     s = src.replace("\\", "/")
     if "mermaid_figures" in s:

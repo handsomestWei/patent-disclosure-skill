@@ -51,5 +51,5 @@
 
    ```text
    在现有交底书 outputs/.../一种XXX_时间戳.md 上：
-   - 合并附录里的新实施例（偏 merger）；或修正 3.5 与正文公式不一致（偏 correction_handler）
+   - 合并附录里的新实施例（偏 merger）；或修正第 11 章关键参数与正文公式不一致（偏 correction_handler）
    ```
