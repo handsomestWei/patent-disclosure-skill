@@ -88,8 +88,14 @@ def _usage() -> None:
 
 def main(argv: list[str] | None = None) -> int:
     _ensure_utf8_stdio()
-    argv = argv if argv is not None else sys.argv[1:]
-    terms = _terms_from_argv(argv)
+    raw_args = argv if argv is not None else sys.argv[1:]
+
+    # 先处理 --help / -h，避免被当作检索词并触发真实请求
+    if any(a in ("--help", "-h") for a in raw_args):
+        _usage()
+        return 0
+
+    terms = _terms_from_argv(raw_args)
     if not terms:
         _usage()
         return 2

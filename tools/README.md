@@ -2,11 +2,11 @@
 
 本目录存放**可重复执行的辅助脚本**。技能主流程以 `SKILL.md` 与 `prompts/` 为准；本目录侧重格式转换等可执行工具。
 
-## 国知局公布公告检索（epub.cnipa.gov.cn，Step 5 查新优先）
+## 国知局公布公告检索（epub.cnipa.gov.cn，C 阶段查新优先）
 
 | 脚本 | 作用 |
 |------|------|
-| **`cnipa_epub_search.py`** | **（Step 5 优先）** 一步：拉取 + 解析，**不写结果页 HTML 落盘**；**Agent 须按 `prior_art_search.md` 分多次调用、每轮一词并自行合并 JSON**；脚本在**单次命令多词**时也会进程内循环检索并合并（人工/本地便利）；**stdout 仅一行** `EPUB_HITS_JSON:`；stderr 上 `EPUB_*` 为 **ASCII**；UTF-8 / PowerShell 见 **INSTALL.md**。 |
+| **`cnipa_epub_search.py`** | **（C 阶段优先）** 一步：拉取 + 解析，**不写结果页 HTML 落盘**；**Agent 须按 `prior_art_search.md` 分多次调用、每轮一词并自行合并 JSON**；脚本在**单次命令多词**时也会进程内循环检索并合并（人工/本地便利）；**stdout 仅一行** `EPUB_HITS_JSON:`；stderr 上 `EPUB_*` 为 **ASCII**；UTF-8 / PowerShell 见 **INSTALL.md**。 |
 | **`cnipa_epub_crawler.py`** | 仅 Playwright 拉取并**默认保存**结果页 HTML；stdout 亦含 **`EPUB_HITS_JSON:`**。 |
 | **`cnipa_epub_parse.py`** | 仅解析已保存的 HTML：`python tools/cnipa_epub_parse.py path/to/_last_result_xxx.html`；字段含标题、公开号、链接、**`abstract`**（若有）。 |
 
@@ -67,7 +67,7 @@ npx -y @mermaid-js/mermaid-cli mmdc -i sample.mmd -o sample.png -b white
 ### 用法
 
 ```bash
-# 写出定稿 .md，并在同目录生成同名 .docx（默认）；-o 须为「案件名_YYYYMMDDHHmmss.md」（见 prompts/disclosure_builder.md §7.3 第 5 点）
+# 写出定稿 .md，并在同目录生成同名 .docx（默认）；-o 须为「发明名称_YYYYMMDDHHmmss.md」（见 prompts/disclosure_builder.md「输出文件命名」 第 5 点）
 python3 tools/mermaid_render.py -i draft.md -o "一种XXX方法及系统_20260408143025.md"
 
 # 指定 .docx 路径（.md 主名仍须含时间戳）
@@ -89,7 +89,7 @@ Windows 上若仅装 Node 未执行 `npm install`，脚本会通过 `npx -y @mer
 
 ### 与交底书约定
 
-- 技能要求定稿**同时**交付 **Markdown + Word**，且 **`-o` 主文件名须含 `_{YYYYMMDDHHmmss}`**（`prompts/disclosure_builder.md` §7.3 第 5 点，含首次定稿）；若使用 mermaid 降级图，须渲染为 PNG 并在第 13 章集中引用，**不要** ASCII 文字流程图或框图。
+- 技能要求定稿**同时**交付 **Markdown + Word**，且 **`-o` 主文件名须含 `_{YYYYMMDDHHmmss}`**（`prompts/disclosure_builder.md` 「输出文件命名」第 5 点，含首次定稿）；若使用 mermaid 降级图，须渲染为 PNG 并在第 13 章集中引用，**不要** ASCII 文字流程图或框图。
 - 交付代理人前：运行 `mermaid_render.py` 一步即可（默认再调 `md_to_docx.py`）；若 Word 失败，按 stderr 提示手动执行 `md_to_docx.py`。
 
 ---
@@ -125,7 +125,7 @@ python3 tools/math_render.py -i draft.md -o out.md --assets-dir math_figures
 
 ## figure_check.py — 第 13 章附图一致性校验
 
-在定稿 Word 前运行，检查**第 13 章附图**是否和其他章节提及图号完全对应，避免图号、图注、附图说明、附图标记表或图片文件路径出错。
+在定稿 Word 前运行，检查**第 13 章附图**是否和其他章节提及图号完全对应，避免图号、图注、关键附图标记或图片文件路径出错。
 
 ```bash
 python3 tools/figure_check.py outputs/case/一种XXX方法及系统_20260629120000.md
@@ -136,13 +136,11 @@ python3 tools/figure_check.py outputs/case/一种XXX方法及系统_202606291200
 - 图片引用是否只集中在第 13 章；
 - 其他章节提及的图号是否均在第 13 章定义；
 - 第 13 章图片文件是否存在；
-- 图片下方是否有对应图注；
-- 附图说明是否列出对应图号；
-- 是否存在附图标记表。
+- 图片下方是否有对应图注与关键附图标记；
+- 图中是否包含附图标记号；
+- 是否无独立附图说明汇总表格和独立附图标记表。
 
 通过时输出 `FIGURE_CHECK_OK`，失败时输出 `FIGURE_CHECK_FAIL` 并逐条列出问题。脚本只做硬一致性校验；图示内容是否准确仍须结合图示规划表、正文技术逻辑和附图标记人工/Agent 复核。
-
----
 
 ## md_to_docx.py — Markdown → Word
 
@@ -223,7 +221,7 @@ python3 tools/iteration_dialog_log.py --case-dir outputs/某案件 --kind merge 
 
 ## docx_to_md.py — Word → Markdown + 抽取图片
 
-将 **.docx**（Word / WPS 等另存为 docx）转为 **Markdown**，并把文档内嵌图片落到磁盘，便于 **`Read` 与 Step 2 扫描**（与直接读二进制 .docx 相比更稳）。**Step 2** 对扫描树内**每一个** `.docx` 都应先转换再读产出 `.md`，见 `prompts/project_scan.md`。
+将 **.docx**（Word / WPS 等另存为 docx）转为 **Markdown**，并把文档内嵌图片落到磁盘，便于 **`Read` 与 B 扫描**（与直接读二进制 .docx 相比更稳）。**B** 对扫描树内**每一个** `.docx` 都应先转换再读产出 `.md`，见 `prompts/project_scan.md`。
 
 ### 依赖
 
@@ -260,7 +258,7 @@ python3 tools/docx_to_md.py -i ./raw/spec.docx -o ./knowledge/spec.md --media-di
 
 ## pptx_to_md.py — PowerPoint → Markdown + 抽取图片
 
-将 **.pptx** / **.ppsx** 按**幻灯片页**导出为 Markdown，并抽取幻灯片中的**嵌入位图**（`PICTURE` 形状），便于 **`Read` 与 Step 2 扫描**。**Step 2** 对扫描树内**每一个** `.pptx` 均应先转换再读 `.md`，见 `prompts/project_scan.md`。
+将 **.pptx** / **.ppsx** 按**幻灯片页**导出为 Markdown，并抽取幻灯片中的**嵌入位图**（`PICTURE` 形状），便于 **`Read` 与 B 扫描**。**B** 对扫描树内**每一个** `.pptx` 均应先转换再读 `.md`，见 `prompts/project_scan.md`。
 
 ### 依赖
 

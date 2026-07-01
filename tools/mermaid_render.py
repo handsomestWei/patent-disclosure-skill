@@ -61,8 +61,8 @@ def _find_mmdc_invocation() -> tuple[list[str], bool]:
     if mmdc and Path(mmdc).suffix.lower() not in (".ps1",):
         return [mmdc], False
     if sys.platform == "win32":
-        return ["npx", "-y", "@mermaid-js/mermaid-cli", "mmdc"], True
-    return ["npx", "-y", "@mermaid-js/mermaid-cli", "mmdc"], False
+        return ["npx.cmd", "-y", "@mermaid-js/mermaid-cli"], False
+    return ["npx", "-y", "@mermaid-js/mermaid-cli"], False
 
 
 def _mmdc_extra_args(

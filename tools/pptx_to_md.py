@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-将 PowerPoint（.pptx）按页导出为 Markdown，并抽取幻灯片中的嵌入图片，便于 Step 2 扫描与 Agent Read。
+将 PowerPoint（.pptx）按页导出为 Markdown，并抽取幻灯片中的嵌入图片，便于 B 阶段（project_scan）扫描与 Agent Read。
 
 依赖 python-pptx（见仓库根目录 requirements.txt）。
 

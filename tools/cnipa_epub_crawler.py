@@ -224,10 +224,31 @@ def _dump_home_debug() -> None:
 if __name__ == "__main__":
     _ensure_utf8_stdio()
     argv = [a for a in sys.argv[1:] if a.strip()]
+
+    # --help / -h：打印用法后退出，不发起网络请求
+    if any(a in ("--help", "-h") for a in argv):
+        print(
+            "usage: python tools/cnipa_epub_crawler.py <keyword> [--dump-home/-d]",
+            file=sys.stderr,
+        )
+        print("  keyword         检索词（含空格时为整句 AND）", file=sys.stderr)
+        print("  --dump-home/-d  仅拉取首页 HTML 并保存到 _last_home.html（调试用）", file=sys.stderr)
+        print(
+            "首选一步脚本: python tools/cnipa_epub_search.py <term> [more terms...]",
+            file=sys.stderr,
+        )
+        sys.exit(0)
+
     if argv and argv[0] in ("--dump-home", "-d"):
         _dump_home_debug()
         sys.exit(0)
-    kw = (argv[0] if argv else "批处理").strip()
+    if not argv:
+        print(
+            "ERROR: 缺少检索词。用法: python tools/cnipa_epub_crawler.py <keyword>",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    kw = argv[0].strip()
     try:
         out_html, hits = search_epub_keyword(kw)
     except Exception as e:

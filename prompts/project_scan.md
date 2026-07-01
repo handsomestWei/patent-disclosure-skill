@@ -1,4 +1,4 @@
-# 项目文档扫描（Step 2）
+# 项目文档扫描（B）
 
 ## 目标
 
@@ -37,7 +37,7 @@
 
 Agent **不得**因「只能舒适读取文本」而**遗漏**项目内的 Word / PPT：**必须先转为 Markdown 再纳入扫描**，不能只扫 `.md` 与源码。
 
-1. **发现**：在扫描目录内 **`Glob` 或列举** `*.docx`、`*.pptx`（含子目录，如 `docs/sample_*.docx`）。
+1. **发现**：在扫描目录内 **`Glob` 或列举** `*.docx`、`*.pptx`（含子目录，例如任意业务资料目录下的 `sample_*.docx`）。
 2. **转换（本仓库脚本）**：对每个文件执行（路径按实际替换；`${CLAUDE_SKILL_DIR}` 为技能根）：
 
    ```bash
@@ -51,18 +51,7 @@ Agent **不得**因「只能舒适读取文本」而**遗漏**项目内的 Word 
 
 ## 图片与裸图目录（跳过单独识图）
 
-- **`sample_assets/`** 等目录下的 **独立 `.png` / `.jpg` / `.webp` 等**：**不作为** Step 2 必须逐个打开、OCR 或描述的对象（与 Word/PPT 内嵌图**通常重复**时更不必重复读图）。
+- **`sample_assets/`** 等目录下的 **独立 `.png` / `.jpg` / `.webp` 等**：**不作为** B 必须逐个打开、OCR 或描述的对象（与 Word/PPT 内嵌图**通常重复**时更不必重复读图）。
 - **例外**：用户**点名**某图片路径，或某图**未**出现在任何已转换 Office 的 `_media` 中且对专利点明显关键时，再按需处理。
 - Word/PPT 转换后，嵌入图已在 **`![](相对路径)`** 中体现，**以 Markdown 文本扫描为主**即可。
 
-## 示例案件 `knowledge/docs/`（练习时勿漏）
-
-若扫描路径包含 **`examples/example_batch_job_scheduler/knowledge/`**（或同构案件目录），须覆盖：
-
-| 路径 | 动作 |
-|------|------|
-| `docs/architecture.md` | 直接 Read |
-| `docs/sample_architecture_review.docx` | **先** `docx_to_md.py` → 再 Read 生成的 `.md` |
-| `docs/sample_scheduler_deck.pptx` | **先** `pptx_to_md.py` → 再 Read 生成的 `.md` |
-| `docs/sample_assets/*.png` | **跳过**单独精读（内容已由 Office 内嵌图 + 转换 MD 覆盖） |
-| `pkg/scheduler/*.go` | Read |

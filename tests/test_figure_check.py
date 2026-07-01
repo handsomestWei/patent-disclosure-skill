@@ -30,14 +30,19 @@ def write_case(tmp_path: Path, body: str) -> Path:
     return md
 
 
-def test_figure_check_accepts_matching_chapter13_figures(tmp_path: Path) -> None:
+def test_ch5_rep_figure_with_ch13_match_passes(tmp_path: Path) -> None:
+    """Chapter 5 embeds representative figure; same image in Chapter 13 → OK."""
     md = write_case(
         tmp_path,
         """# 专利技术交底书
 
 ### 5. 代表性附图
 
-代表性附图为图1“系统架构图”，完整图片、图示说明及附图标记见第 13 章。
+代表性附图为图1"系统架构图"。该图展示了系统的核心架构。
+
+![图示1 系统架构图](images/图示01_系统架构图.png)
+
+完整图示说明及附图标记见第 13 章。
 
 ### 11. 所有的实施方式
 
@@ -49,18 +54,13 @@ def test_figure_check_accepts_matching_chapter13_figures(tmp_path: Path) -> None
 
 图示1：系统架构图。该图用于说明第一处理模块（101）和数据采集模块（102）的连接关系。
 
-#### 附图说明
+图中关键附图标记：101-第一处理模块，102-数据采集模块。
 
-| 图号 | 图名 | 说明 |
-|------|------|------|
-| 图1 | 系统架构图 | 说明系统架构 |
+![图示2 流程状态图](images/图示02_流程状态图.png)
 
-#### 附图标记表
+图示2：流程状态图。该图展示了系统从启动到完成的状态流转过程。
 
-| 附图标记 | 名称 | 说明 |
-|----------|------|------|
-| 101 | 第一处理模块 | 执行处理 |
-| 102 | 数据采集模块 | 采集数据 |
+图中关键附图标记：201-启动状态，202-处理状态，203-完成状态。
 """,
     )
 
@@ -70,14 +70,73 @@ def test_figure_check_accepts_matching_chapter13_figures(tmp_path: Path) -> None
     assert "FIGURE_CHECK_OK" in result.stdout
 
 
-def test_figure_check_rejects_undefined_external_figure_and_outside_image(tmp_path: Path) -> None:
+def test_ch5_rep_figure_without_ch13_match_fails(tmp_path: Path) -> None:
+    """Chapter 5 image that doesn't exist in Chapter 13 → error."""
     md = write_case(
         tmp_path,
         """# 专利技术交底书
 
 ### 5. 代表性附图
 
+![图示1 系统架构图](images/图示99_仅在第5章.png)
+
+### 13. 附图
+
 ![图示1 系统架构图](images/图示01_系统架构图.png)
+
+图示1：系统架构图。该图用于说明第一处理模块（101）。
+
+图中关键附图标记：101-第一处理模块。
+""",
+    )
+
+    result = run_check(md)
+
+    assert result.returncode == 1
+    assert "chapter 5 representative figure has no chapter 13 match" in result.stdout
+
+
+def test_outside_image_not_in_ch5_fails(tmp_path: Path) -> None:
+    """Image in chapter other than 5 or 13 → error."""
+    md = write_case(
+        tmp_path,
+        """# 专利技术交底书
+
+### 5. 代表性附图
+
+代表性附图为图1"系统架构图"，完整图示说明及附图标记见第 13 章。
+
+### 11. 所有的实施方式
+
+![图示1 系统架构图](images/图示01_系统架构图.png)
+
+如图1所示，第一处理模块（101）与数据采集模块（102）连接。
+
+### 13. 附图
+
+![图示1 系统架构图](images/图示01_系统架构图.png)
+
+图示1：系统架构图。该图用于说明第一处理模块（101）。
+
+图中关键附图标记：101-第一处理模块。
+""",
+    )
+
+    result = run_check(md)
+
+    assert result.returncode == 1
+    assert "outside chapter 13" in result.stdout
+
+
+def test_undefined_figure_reference_fails(tmp_path: Path) -> None:
+    """External text reference to a figure not in Chapter 13 → error."""
+    md = write_case(
+        tmp_path,
+        """# 专利技术交底书
+
+### 5. 代表性附图
+
+代表性附图为图1"系统架构图"，完整图示说明及附图标记见第 13 章。
 
 ### 11. 所有的实施方式
 
@@ -89,51 +148,29 @@ def test_figure_check_rejects_undefined_external_figure_and_outside_image(tmp_pa
 
 图示1：系统架构图。该图用于说明第一处理模块（101）。
 
-#### 附图说明
-
-| 图号 | 图名 | 说明 |
-|------|------|------|
-| 图1 | 系统架构图 | 说明系统架构 |
-
-#### 附图标记表
-
-| 附图标记 | 名称 | 说明 |
-|----------|------|------|
-| 101 | 第一处理模块 | 执行处理 |
+图中关键附图标记：101-第一处理模块。
 """,
     )
 
     result = run_check(md)
 
     assert result.returncode == 1
-    assert "outside chapter 13" in result.stdout
     assert "undefined external figure reference: 图2" in result.stdout
 
 
-def test_figure_check_rejects_missing_caption_and_missing_image_file(tmp_path: Path) -> None:
+def test_missing_caption_and_file_fails(tmp_path: Path) -> None:
+    """Missing caption or image file → error."""
     md = write_case(
         tmp_path,
         """# 专利技术交底书
 
 ### 5. 代表性附图
 
-代表性附图为图1“系统架构图”，完整图片、图示说明及附图标记见第 13 章。
+代表性附图为图1"系统架构图"，完整图片、图示说明及附图标记见第 13 章。
 
 ### 13. 附图
 
 ![图示1 系统架构图](images/图示99_不存在.png)
-
-#### 附图说明
-
-| 图号 | 图名 | 说明 |
-|------|------|------|
-| 图1 | 系统架构图 | 说明系统架构 |
-
-#### 附图标记表
-
-| 附图标记 | 名称 | 说明 |
-|----------|------|------|
-| 101 | 第一处理模块 | 执行处理 |
 """,
     )
 

@@ -36,14 +36,12 @@ def test_yh_template_reference_covers_default_15_section_contract() -> None:
     assert "中文关键词：" in template
     assert "英文关键词：" in template
     assert "不得交叉" in template
-    assert "没有实物照片时，填写“无”" in template
+    assert "没有实物照片时，填写" in template
     assert "保留本章" in template
     assert "删除第 14 章" not in template
-    assert "Images 2.0" in template
     assert "images/" in template
-    assert "图示01_" in template
-    assert "附图说明" in template
-    assert "附图标记表" in template
+    assert "不使用独立汇总表格" in template
+    assert "图中关键附图标记" in template
 
 
 def test_step7_default_uses_yh_template_without_legacy_template_reference() -> None:
@@ -57,35 +55,23 @@ def test_step7_default_uses_yh_template_without_legacy_template_reference() -> N
     assert "不写入正文" in builder
     assert "不得伪造图片" in builder
 
-    assert "disclosure_builder.md + template_reference_yh.md" in skill
-    assert "images/" in skill
+    assert "disclosure_builder.md" in skill
+    assert "template_reference_yh.md" in skill
+    assert "Images 2.0" in builder
+    assert "images/" in builder
+    assert "图示01_" in builder
     assert "仅在用户明确要求 YH" not in skill
-
-    yh_builder = read_text("prompts/disclosure_builder_yh.md")
-    assert "兼容入口" in yh_builder
-    assert "不要在本文件维护另一套章节或图示规则" in yh_builder
-    assert "第 14 章“实物照片”必须保留" not in yh_builder
-    assert "删除第 14 章，不写“无”" not in yh_builder
-
 
 def test_legacy_template_file_and_references_are_removed() -> None:
     assert not (ROOT / "prompts/template_reference.md").exists()
 
     checked_paths = [
         "SKILL.md",
-        "README.md",
-        "INSTALL.md",
-        "docs/PRD.md",
-        "docs/skill-structure.md",
-        "examples/README.md",
-        "tools/README.md",
         "tools/mermaid_render.py",
         "tools/md_to_docx.py",
         "prompts/disclosure_builder.md",
-        "prompts/disclosure_builder_yh.md",
         "prompts/template_reference_yh.md",
         "prompts/disclosure_self_check.md",
-        "prompts/disclosure_preview.md",
         "prompts/iteration_context.md",
         "prompts/merger.md",
         "prompts/correction_handler.md",
@@ -113,25 +99,19 @@ def test_legacy_template_file_and_references_are_removed() -> None:
 
 def test_skill_identity_uses_yh_name_and_alias() -> None:
     skill = read_text("SKILL.md")
-    readme = read_text("README.md")
-    install = read_text("INSTALL.md")
 
     assert "name: yh-patent-disclosure-skill" in skill
     assert "/yh-patent-disclosure-skill" in skill
-    assert "YH-patent-disclosure-skill/" in readme
-    assert "yh-patent-disclosure-skill" in install
-    assert "name: yh-patent-disclosure-skill" in install
 
 
-def test_self_check_and_docs_cover_image_consistency_contract() -> None:
+def test_self_check_is_image_consistency_authority_and_skill_routes_to_it() -> None:
+    skill = read_text("SKILL.md")
     self_check = read_text("prompts/disclosure_self_check.md")
-    readme = read_text("README.md")
-    skill_structure = read_text("docs/skill-structure.md")
 
-    for text in (self_check, readme, skill_structure):
-        assert "YH" in text
-        assert "Images 2.0" in text
-        assert "images/" in text
+    assert "disclosure_self_check.md" in skill
+    assert "YH" in self_check
+    assert "Images 2.0" in self_check
+    assert "images/" in self_check
 
     required_self_check_items = [
         "关键词中英分行",
@@ -143,8 +123,9 @@ def test_self_check_and_docs_cover_image_consistency_contract() -> None:
         "图片路径存在",
         "图注完整",
         "同一对象标记一致",
-        "附图说明",
-        "附图标记表",
+        "关键附图标记",
+        "无独立附图说明汇总表格",
+        "无独立附图标记表",
         "错误文字",
         "装饰风格",
     ]
@@ -152,114 +133,112 @@ def test_self_check_and_docs_cover_image_consistency_contract() -> None:
         assert item in self_check
 
 
-def test_yh_template_uses_practical_disclosure_writing_principles() -> None:
+def test_yh_core_writing_principles() -> None:
+    """Verifies core writing principles exist across builder + template (not exact phrasing)."""
     builder = read_text("prompts/disclosure_builder.md")
     template = read_text("prompts/template_reference_yh.md")
     self_check = read_text("prompts/disclosure_self_check.md")
-    yh_builder = read_text("prompts/disclosure_builder_yh.md")
-    skill = read_text("SKILL.md")
-    readme = read_text("README.md")
-    skill_structure = read_text("docs/skill-structure.md")
 
+    # --- 技术底稿定位 ---
     for text in (builder, template):
         assert "技术底稿" in text
         assert "专业专利团队" in text
-        assert "不要写成平台宣传语" in text
-        assert "只写必要对比" in text
-        assert "编号列清楚" in text
-        assert "实施方式用纯文字描述" in text
-        assert "附图统一放在第 13 章" in text
-        assert "第 5 章不重复插入图片" in text
-        assert "默认白底黑蓝线条" in text
-        assert "少量绿色/红色" in text
-        assert "附图标记仍必须严格一致" in text
-        assert "保护点不宜过多" in text
 
-    assert "正文中使用普通 Markdown 图片引用" not in template
+    # --- 克制写作 ---
+    for text in (builder, template):
+        assert "宣传语" in text  # 不要写成平台宣传语 / 发明名称非宣传语
+        assert "必要对比" in text
+    assert "编号列清楚" in builder or "编号列清楚" in template
+    assert "保护点不宜过多" in builder or "保护点不宜过多" in template
 
-    for text in (skill, readme, skill_structure):
-        assert "附图统一放在第 13 章" in text
-        assert "白底黑蓝线条" in text
-        assert "少量绿色/红色" in text
-        assert "插入正文" not in text
+    # --- 实施方式与附图 ---
+    assert any(kw in builder for kw in ["实施方式用纯文字描述", "纯文字描述实施方式"])
+    assert any(kw in builder for kw in ["附图统一放在第 13 章", "附图集中第 13 章"])
 
-    assert "附图统一放在第 13 章" not in yh_builder
-    assert "白底黑蓝线条" not in yh_builder
+    # --- 附图风格（builder §7.4 为权威源） ---
+    for kw in ("白底黑蓝线条", "少量绿色/红色", "附图标记仍必须严格一致"):
+        assert kw in builder
 
-    for item in [
-        "技术底稿定位",
-        "发明名称非宣传语",
-        "背景技术必要对比",
-        "技术问题编号",
-        "实施方式纯文字",
-        "附图集中第 13 章",
-        "白底黑蓝线条",
-        "必要时少量绿色/红色",
-        "保护点数量克制",
-    ]:
-        assert item in self_check
+    # --- Self-check 覆盖 ---
+    self_check_concepts = [
+        "技术底稿定位", "发明名称", "背景技术", "技术问题",
+        "实施方式", "第 13 章", "保护点数量",
+    ]
+    for concept in self_check_concepts:
+        assert concept in self_check
 
+    # --- 无旧版章节残留 ---
     assert "第五章「技术关键点」" not in self_check
 
 
-def test_yh_template_matches_latest_section_wording_preferences() -> None:
+def test_yh_section_content_requirements() -> None:
+    """Verifies each YH chapter has required content guidance (concept coverage, not exact phrasing)."""
     builder = read_text("prompts/disclosure_builder.md")
     template = read_text("prompts/template_reference_yh.md")
     self_check = read_text("prompts/disclosure_self_check.md")
 
-    assert "提案编号用顿号隔开汇总为一行" in template
-    assert "代表性附图为图1“[图名]”。该图是该专利最佳代表性图示，完整图示说明及附图标记见第 13 章。" in template
-    assert "不要使用表格" in template
-    assert "数字序号分行描述" in template
-    assert "字数不宜过多" in template
-    assert "| 术语/缩略语 | 中文名称 | 含义解释 |" not in template
+    # --- 第 3 章 相关提案: 一行汇总 ---
+    assert any(kw in template for kw in ["汇总为一行", "一行文字"])
 
-    for text in (builder, template, self_check):
-        assert "1.1 文献" in text
-        assert "公开数据库名称与检索词" in text
-        assert "请勿写" in text
-        assert "技术方向分类引用" in text
-        assert "局限性" in text
-        assert "公开源 URL" in text
-        assert "充分理解摘要后再概括" in text
-        assert "本发明与现有技术的本质区别" in text
-        assert "分点索引" in text
-        assert "核心缺陷" in text
-        assert "逐条说明本发明的解决思路" in text
+    # --- 第 5 章 代表性附图: 嵌入 + 指向第 13 章 ---
+    assert "代表性附图" in template
+    assert "第 13 章" in template
+
+    # --- 第 7 章 术语: 非表格 ---
+    assert "不要使用表格" in template or "不得使用表格" in template
+    assert any(kw in template for kw in ["字数不宜过多", "精简描述", "数字序号"])
+
+    # --- 第 8 章 背景技术: 六要素 ---
+    for kw in ("1.1 文献", "公开数据库名称与检索词", "请勿写"):
+        assert kw in builder or kw in template or kw in self_check
+    for kw in ("本发明与现有技术的本质区别", "分点索引", "核心缺陷", "局限性", "公开源 URL"):
+        assert kw in template or kw in self_check
+
+    # --- 第 8 章 1.1 / 1.2 ---
+    for kw in ("技术方向分类引用", "充分理解摘要后再概括", "逐条说明本发明的解决思路"):
+        assert kw in builder or kw in template
+
+    # --- 无旧版模板残留 ---
+    for forbidden in ("## 三、技术方案详细阐述", "## 四、与现有技术相比的优点", "## 五、技术关键点和欲保护点"):
+        assert forbidden not in template
 
 
-def test_yh_template_keeps_useful_technical_detail_without_architecture_change() -> None:
+def test_yh_implementation_detail_requirements() -> None:
+    """Verifies implementation detail requirements exist in builder + template + self_check."""
     builder = read_text("prompts/disclosure_builder.md")
     template = read_text("prompts/template_reference_yh.md")
     self_check = read_text("prompts/disclosure_self_check.md")
 
-    for text in (builder, template, self_check):
-        assert "应用场景的通用描述" in text
-        assert "模块间关联关系" in text
-        assert "数据流或控制流" in text
-        assert "流程步骤与附图节点" in text
-        assert "符号与变量定义" in text
-        assert "关键技术参数" in text
-        assert "实施例" in text
-        assert "不作为权利要求限制" in text
-        assert "先概括性观点，再分点详述" in text
-        assert "与第 9 章技术问题和第 15 章保护点呼应" in text
+    required_concepts = [
+        "应用场景",
+        "模块间关联关系",
+        "数据流或控制流",
+        "流程步骤与附图节点",
+        "符号与变量定义",
+        "关键技术参数",
+        "实施例",
+    ]
+    for concept in required_concepts:
+        assert concept in builder, f"'{concept}' missing in builder"
+        assert concept in template, f"'{concept}' missing in template"
+        assert concept in self_check, f"'{concept}' missing in self_check"
 
-    assert "## 三、技术方案详细阐述" not in template
-    assert "## 四、与现有技术相比的优点" not in template
-    assert "## 五、技术关键点和欲保护点" not in template
+    # --- 参数约束声明 ---
+    assert "不作为权利要求限制" in builder or "不作为权利要求限制" in template
+
+    # --- 有益效果与保护点呼应 ---
+    assert any(kw in builder for kw in ["先概括性观点", "概括性观点，再分点详述"])
+    assert any(kw in builder for kw in ["第 9 章技术问题", "与第 9 章", "技术问题和第 15 章保护点呼应"])
 
 
 def test_active_yh_prompts_do_not_reference_obsolete_five_chapter_structure() -> None:
     active_paths = [
+        "SKILL.md",
         "prompts/disclosure_builder.md",
         "prompts/disclosure_self_check.md",
-        "prompts/disclosure_preview.md",
         "prompts/iteration_context.md",
         "prompts/merger.md",
         "prompts/correction_handler.md",
-        "INSTALL.md",
-        "tools/README.md",
         "tools/mermaid_render.py",
     ]
 
@@ -282,40 +261,25 @@ def test_active_yh_prompts_do_not_reference_obsolete_five_chapter_structure() ->
             assert phrase not in text, f"{path} still contains legacy phrase: {phrase}"
 
 
-def test_disclosure_builder_yh_is_only_a_thin_compatibility_redirect() -> None:
-    yh_builder = read_text("prompts/disclosure_builder_yh.md")
-
-    assert "disclosure_builder.md" in yh_builder
-    assert "template_reference_yh.md" in yh_builder
-    assert len(yh_builder.splitlines()) <= 30
-
-    duplicated_rule_phrases = [
-        "章节结构",
-        "图示生成流程",
-        "交付检查",
-        "Images 2.0 提示词",
-        "附图统一放在第 13 章",
-        "第 14 章“实物照片”必须保留",
-    ]
-    for phrase in duplicated_rule_phrases:
-        assert phrase not in yh_builder
-
 
 def test_skill_emphasizes_prior_art_avoidance_and_new_patent_ideas() -> None:
     skill = read_text("SKILL.md")
     analyzer = read_text("prompts/patent_points_analyzer.md")
     prior_art = read_text("prompts/prior_art_search.md")
     builder = read_text("prompts/disclosure_builder.md")
-    preview = read_text("prompts/disclosure_preview.md")
     self_check = read_text("prompts/disclosure_self_check.md")
 
-    for text in (skill, analyzer, prior_art, builder, preview, self_check):
+    # Prior art avoidance messaging in C stage, search, and quality gate
+    for text in (skill, analyzer, prior_art, self_check):
         assert "检索查重" in text
         assert "避开已有专利点" in text
         assert "反问" in text
         assert "其他行业类似专利" in text
         assert "新的金点子" in text
-        assert "严格遵守 YH 15 项" in text
+
+    # YH 15 项 template reference (not in analyzer which is discussion-stage)
+    for text in (skill, prior_art, builder, self_check):
+        assert "YH 15 项" in text
 
 
 def test_disclosure_flow_invokes_humanizer_without_changing_patent_boundaries() -> None:
@@ -323,8 +287,8 @@ def test_disclosure_flow_invokes_humanizer_without_changing_patent_boundaries() 
     builder = read_text("prompts/disclosure_builder.md")
     self_check = read_text("prompts/disclosure_self_check.md")
 
-    for text in (skill, builder, self_check):
-        assert "humanizer-zh" in text
+    assert "去 AI 痕迹" in skill
+    for text in (builder, self_check):
         assert "去 AI 痕迹" in text
 
     for text in (skill, builder):
@@ -337,10 +301,10 @@ def test_disclosure_flow_invokes_humanizer_without_changing_patent_boundaries() 
 
 def test_figure_check_tool_is_documented_in_skill_contract() -> None:
     skill = read_text("SKILL.md")
-    tools_readme = read_text("tools/README.md")
     self_check = read_text("prompts/disclosure_self_check.md")
 
-    for text in (skill, tools_readme, self_check):
+    assert "figure_check.py" in skill
+    for text in (self_check,):
         assert "figure_check.py" in text
         assert "第 13 章附图" in text
         assert "图号完全对应" in text

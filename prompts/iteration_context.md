@@ -2,7 +2,7 @@
 
 ## 本文作用
 
-约定**迭代时先干什么、产出什么**，避免 Agent 只读了合并/纠正模板却转去跑 **Step 3–4 专利点分析**或空泛「更新分析」而不落盘新稿。
+约定**迭代时先干什么、产出什么**，避免 Agent 只读了合并/纠正模板却转去跑 **C 阶段 专利点分析**或空泛「更新分析」而不落盘新稿。
 
 ---
 
@@ -14,7 +14,7 @@
 |------|------------|
 | 补充文档、扩展方案、合并新材料 | `merger.md` |
 | 指出错误、与事实/参数不符、风格或保护点调整 | `correction_handler.md` |
-| 用户已按 `disclosure_builder.md` §7.6 声明侧重点，仅需 **第 15 章保护点书式强化**（取向须与本稿已有材料及第 9 至第 15 章已写内容一致，**禁止**为交互而编造新场景） | `merger.md`（以最近定稿为基准，合并范围以第 15 章为主，必要时微调第 9、10、11 章的衔接句） |
+| 用户已按 `disclosure_builder.md` 「交付回复」 声明侧重点，仅需 **第 15 章保护点书式强化**（取向须与本稿已有材料及第 9 至第 15 章已写内容一致，**禁止**为交互而编造新场景） | `merger.md`（以最近定稿为基准，合并范围以第 15 章为主，必要时微调第 9、10、11 章的衔接句） |
 
 ---
 
@@ -28,8 +28,8 @@
 **输出**
 
 - 合并或纠正后的全文写入**新文件**，不得默认覆盖旧稿：  
-  **`{规范化案件名}_{YYYYMMDDHHmmss}.md`** + **`mermaid_render.py` 生成的同名 `.docx`**。  
-- 与 **Step 7 首次定稿**为**同一命名规则**（凡落盘交付均带时间戳），详见 **`disclosure_builder.md` §7.3 第 5 点**。  
+  **`{规范化发明名称}_{YYYYMMDDHHmmss}.md`** + **`mermaid_render.py` 生成的同名 `.docx`**。  
+- 与 **D 阶段首次定稿**为**同一命名规则**（凡落盘交付均带时间戳），详见 **`disclosure_builder.md` 「输出文件命名」第 5 点**。  
 - 旧版 `.md`/`.docx` 保留在同目录，便于对照（用户明确要求覆盖时再覆盖）。
 
 版本历史依赖**同目录下多个带时间戳的文件**，不需要 `iterations/` 子目录或快照脚本。
@@ -51,7 +51,7 @@
 **推荐**：在写出交付文件并生成 Word 之后，执行 **`Bash`**：
 
 ```text
-python3 ${CLAUDE_SKILL_DIR}/tools/iteration_dialog_log.py --case-dir "{案件目录}" --kind merge --user "{用户说明摘要}" --summary "{摘要摘录}" --artifacts "{案件名_时间戳.md},{案件名_时间戳.docx}"
+python3 ${CLAUDE_SKILL_DIR}/tools/iteration_dialog_log.py --case-dir "{案件目录}" --kind merge --user "{用户说明摘要}" --summary "{摘要摘录}" --artifacts "{发明名称_时间戳.md},{发明名称_时间戳.docx}"
 ```
 
 `--kind` 纠正时用 `correct`。若无法执行脚本，须 **`Read`** 已有 `交底书修订对话记录.md`（若无则 **`Write`** 创建），再 **`StrReplace`** 或等价方式在文末**追加**与上表结构相同的一条（时间须真实）。
@@ -64,7 +64,7 @@ python3 ${CLAUDE_SKILL_DIR}/tools/iteration_dialog_log.py --case-dir "{案件目
 
 1. 读本文 → 按上表选 `merger.md` 或 `correction_handler.md` 并 **`Read`**。
 2. **`Read`** 基准稿 + 本轮补充材料。
-3. 在稿内完成合并或纠正逻辑（自检 **8.2、8.3** 见 `disclosure_self_check.md`）。
+3. 在稿内完成合并或纠正逻辑（自检「公式与参数一致性」「格式与引用」见 `disclosure_self_check.md`）。
 4. **`Write`** 新时间戳 `.md` → 运行 **`mermaid_render.py -o`** 写出定稿图与 **`.docx`**。
 5. 追加 **`交底书修订对话记录.md`**（**`iteration_dialog_log.py`** 或手工），见上文「修订对话记录」。
 6. 在回复中写明新文件路径，并输出该模板要求的 **「合并摘要（留档）」**或 **「纠正摘要（留档）」**。
@@ -74,4 +74,4 @@ python3 ${CLAUDE_SKILL_DIR}/tools/iteration_dialog_log.py --case-dir "{案件目
 ## 禁止
 
 - 已判定为迭代意图时，**不**经合并/纠正流程、不把结果写入**新时间戳文件**，却去跑全文专利点挖掘或仅输出分析段落。
-- 例外：用户**明确要求**「重新挖掘专利点 / 从头再走查新」时，可走主流程 Step 3 起。
+- 例外：用户**明确要求**「重新挖掘专利点 / 从头再走查新」时，可走主流程 C 阶段起。

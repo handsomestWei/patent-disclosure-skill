@@ -8,5 +8,5 @@ matplotlib>=3.8.0
 # 测试
 pytest>=8.0.0
 
-# 可选：Step 5 国知局 epub.cnipa.gov.cn 抓取（Playwright，体积较大；未写入本文件以免默认全量安装）
+# 可选：C 阶段国知局 epub.cnipa.gov.cn 抓取（Playwright，体积较大；未写入本文件以免默认全量安装）
 #   pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium

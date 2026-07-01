@@ -1,13 +1,22 @@
-# 用户产出（整目录不提交）
+# User-generated outputs
 outputs/
 disclosures/
 *.tmp
 ~$*
 
-# 国知局抓取结果缓存（tools/）
+# CNIPA crawler/debug cache
 tools/_last_result*.html
+tools/_last_home.html
 
-# Python / tools
+# Local agent/app state
+.claude/
+
+# Python / tests / tools
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 tools/node_modules/
 __pycache__/
 *.py[cod]
