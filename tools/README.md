@@ -12,6 +12,8 @@
 
 依赖：`pip install -r tools/requirements-cnipa.txt` 与 `python -m playwright install chromium`。环境变量见各脚本文件头。默认结果 HTML 落在 **`tools/_last_result_*.html`**（已 `.gitignore`）。
 
+**可选浏览器后端**：默认使用 **Playwright + Chromium**；若设置环境变量 `BROWSER_BACKEND=agent-browser`，则通过 [agent-browser](https://agent-browser.dev) CLI（Rust 原生，CDP 直连）完成检索，无需 Python Playwright 依赖。安装：`npm i -g agent-browser && agent-browser install`。输出格式与 Playwright 后端完全一致。
+
 抓取失败或解析无命中时，Agent 按 **`prompts/prior_art_search.md`** 降级 **WebSearch**（如 Google 学术 / Google Patents）。
 
 ---
@@ -85,6 +87,8 @@ python3 tools/mermaid_render.py -i draft.md -o out/一种XXX方法及系统_2026
 
 **Word 生成失败**（缺依赖、版式报错等）时：脚本仍以退出码 **0** 结束（Markdown 已成功）；stderr 会打印 **`md_to_docx.py` 的手动命令**，请复制执行。
 
+**pandoc 降级**：当 `md_to_docx.py`（依赖 matplotlib）失败时，`mermaid_render.py` 会自动尝试 `render_and_docx.py`（pandoc 路径）或直接调用 pandoc，将 LaTeX 公式转为 Word 原生 OMML 格式，无需 matplotlib/NumPy。
+
 Windows 上若仅装 Node 未执行 `npm install`，脚本会通过 `npx -y @mermaid-js/mermaid-cli mmdc` 调用（首次可能较慢）。
 
 ### 与交底书约定
@@ -97,6 +101,8 @@ Windows 上若仅装 Node 未执行 `npm install`，脚本会通过 `npx -y @mer
 ## math_render.py — LaTeX 公式 → PNG
 
 将 Markdown 中的 **LaTeX 公式**（``$...$`` / ``\\(...\\)`` 行内；``$$...$$`` / ``\\[...\\]`` 块级）用 **matplotlib mathtext** 渲染为 PNG；**保留 LaTeX 原文**，图片引用写入 HTML 注释 ``<!-- ![...](math_figures/...) -->``（Markdown 预览不显示图），供 **`md_to_docx.py`** 嵌入 Word。
+
+**matplotlib/NumPy 不可用时的降级**：若 NumPy 因 CPU 指令集不兼容（如 `RuntimeError: NumPy was built with baseline optimizations (X86_V2)`）或 matplotlib 未安装而无法加载，`math_render.py` 会检测并跳过 PNG 渲染，由下游 `mermaid_render.py` 或 `render_and_docx.py` 自动使用 **pandoc** 将 LaTeX 转为 Word 原生 OMML 公式（无需 matplotlib）。
 
 **Mermaid 框图**：``mermaid_render.py`` **保留** `` ```mermaid`` 源码，并追加 ``<!-- ![图示 n](mermaid_figures/...) -->``（预览隐藏图引用，Word 仍大图嵌入）。
 
@@ -120,6 +126,33 @@ python3 tools/math_render.py -i draft.md -o out.md --assets-dir math_figures
 ```
 
 定稿流水线：**``mermaid_render.py`` 默认先跑公式再跑 mermaid**（可用 ``--no-math`` 跳过）。单独转 Word 时 **`md_to_docx.py` 也会自动尝试公式渲染**（``--no-math-render`` 可关闭）。
+
+---
+
+## render_and_docx.py — 一键渲染 mermaid + LaTeX 公式 → Word（pandoc 降级路径）
+
+当 matplotlib/NumPy 不可用时（如 NumPy CPU 指令集不兼容），使用本脚本替代 `mermaid_render.py` + `md_to_docx.py` 的组合：
+
+1. **mermaid 围栏** → PNG（mmdc 渲染），替换为 Markdown 图片引用
+2. **LaTeX 公式** → Word 原生 OMML 公式（pandoc 内置，无需 matplotlib）
+3. 输出 `.docx`
+
+### 依赖
+
+```bash
+pip install pypandoc
+python -c "import pypandoc; pypandoc.download_pandoc()"  # 首次下载 pandoc 二进制
+# 或系统安装 pandoc：https://pandoc.org/installing.html
+# mermaid 渲染还需 Node.js + mmdc（同 mermaid_render.py）
+```
+
+### 用法
+
+```bash
+python3 tools/render_and_docx.py -i draft.md -o "一种XXX方法及系统_20260408143025.docx"
+```
+
+本脚本会自动将 Markdown 中的 `\[...\]` / `\(...\)` 分隔符转为 pandoc 兼容的 `$$...$$` / `$...$`。
 
 ---
 
