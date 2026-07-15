@@ -223,8 +223,15 @@ def render_markdown_mermaid(
                     continue
 
             block_idx += 1
-            fname = f"fig_{ok + 1:03d}.png"
+            # 从输出文件名提取时间戳（格式：{案件名}_{YYYY-MM-DD-HH-MM}）
+            _stem = out_md_path.stem
+            _ts_match = re.search(r'(\d{4}-\d{2}-\d{2}-\d{2}-\d{2})', _stem)
+            _ts = _ts_match.group(1).replace('-', '') if _ts_match else ''
+            fname = f"fig_{_ts}_{ok + 1:03d}.png" if _ts else f"fig_{ok + 1:03d}.png"
             png_path = assets_dir / fname
+            # 保存 .md 源文件，方便后续单独修改
+            md_fname = fname.rsplit('.', 1)[0] + '.md'
+            md_path = assets_dir / md_fname
             try:
                 _render_one_mermaid(
                     "".join(body),
@@ -235,6 +242,9 @@ def render_markdown_mermaid(
                     width=mmdc_width,
                     height=mmdc_height,
                 )
+                # 渲染成功后保存 .mmd 源文件
+                assets_dir.mkdir(parents=True, exist_ok=True)
+                md_path.write_text("".join(body), encoding='utf-8')
             except Exception as e:
                 failed += 1
                 print(
