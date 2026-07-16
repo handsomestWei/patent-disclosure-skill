@@ -309,3 +309,80 @@ def test_figure_check_tool_is_documented_in_skill_contract() -> None:
         assert "第 13 章附图" in text
         assert "图号完全对应" in text
         assert "图片文件是否存在" in text
+
+
+# --- 执行纪律契约（L1-L4） ---
+
+def test_each_stage_prompt_has_execution_checklist_and_exit_conditions() -> None:
+    """每个阶段 prompt (A/B/C/D/E) 必须含"执行清单"和"出口条件"."""
+    stage_prompts = [
+        "prompts/intake.md",
+        "prompts/project_scan.md",
+        "prompts/patent_points_analyzer.md",
+        "prompts/disclosure_builder.md",
+        "prompts/disclosure_self_check.md",
+    ]
+    for path in stage_prompts:
+        text = read_text(path)
+        assert "执行清单" in text, f"{path} missing 执行清单"
+        assert "出口条件" in text, f"{path} missing 出口条件"
+
+
+def test_skill_md_has_numbered_execution_sequence() -> None:
+    """SKILL.md 必须含编号 L1 执行序列，覆盖 A-E 完整路由."""
+    skill = read_text("SKILL.md")
+    assert "intake.md" in skill
+    assert "disclosure_builder.md" in skill
+    assert "disclosure_self_check.md" in skill
+    # 执行序列必须包含 A B C D E 五个阶段标记
+    assert "A" in skill and "B" in skill and "C" in skill and "D" in skill and "E" in skill
+    # 硬性要求：每阶段必须先 Read 对应 prompt
+    assert "Read" in skill
+
+
+def test_disclosure_builder_image2_always_priority_with_retry() -> None:
+    """D 阶段 Image2 策略：始终优先尝试，连接失败重试 3 次，内容错误修 prompt."""
+    builder = read_text("prompts/disclosure_builder.md")
+    # 优先 Image2 / Images 2.0
+    assert "优先" in builder
+    assert "Image" in builder
+    # 连接/调用失败重试，最多 3 次
+    assert "重试" in builder
+    assert "3 次" in builder or "三次" in builder
+    # 降级 Mermaid 只在连接失败后
+    assert "降级" in builder
+    assert "Mermaid" in builder
+    # 内容错误（错字/结构/标记）应修 prompt 重试 Image2，不得直接降级
+    assert "提示词" in builder
+
+
+def test_disclosure_builder_has_d_stage_completion_receipt() -> None:
+    """D 阶段出口条件含完成收据声明，完成后立即进入 E 全量检查."""
+    builder = read_text("prompts/disclosure_builder.md")
+    assert "完成收据" in builder or "阶段D完成" in builder
+    assert "进入" in builder
+    assert "E" in builder
+
+
+def test_self_check_has_retrospective_audit_of_upstream_stages() -> None:
+    """E 阶段自检必须回顾验证上游阶段（C/D）的完成情况与 Image2 降级依据."""
+    self_check = read_text("prompts/disclosure_self_check.md")
+    # E 必须反查上游阶段完成凭证或阶段账本
+    assert "完成凭证" in self_check or "完成收据" in self_check or "阶段" in self_check
+    # 必须检查 Image2 降级是否仅在 3 次连接失败后才发生
+    assert "Image" in self_check
+    assert "降级" in self_check
+
+
+def test_builder_forbids_subjective_image2_suitability_judgment() -> None:
+    """D 阶段禁止 LLM 自行判断"适不适合 Image2"."""
+    builder = read_text("prompts/disclosure_builder.md")
+    forbidden = [
+        "判断是否适合",
+        "判断适不适合",
+        "判断该图是否适合",
+        "判断图片是否适合",
+        "根据图片类型选择",
+    ]
+    for phrase in forbidden:
+        assert phrase not in builder, f"builder contains forbidden subjective judgment: {phrase}"

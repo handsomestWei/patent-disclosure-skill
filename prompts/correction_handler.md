@@ -1,5 +1,7 @@
 # 迭代模式：对话纠正
 
+> **`iteration_context.md` → 本文件**。迭代时先读 iteration_context 再读本文件。
+
 ## 执行门禁
 
 先 **`Read`** **`prompts/iteration_context.md`**，再 **Read** 当前定稿与纠正意图；落盘与留档按 `iteration_context.md` 执行。**禁止**默认覆盖旧稿；**禁止**在迭代意图下无纠正落盘却回到 C 全文专利点分析（除非用户明确要求重做专利点）。

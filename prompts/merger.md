@@ -1,5 +1,7 @@
 # 迭代模式：增量合并（修订与补充）
 
+> **`iteration_context.md` → 本文件**。迭代时先读 iteration_context 再读本文件。
+
 ## 执行门禁（优先执行，不可跳过）
 
 1. **`Read`** **`prompts/iteration_context.md`**（迭代时读用户意图 + 已有稿路径，**不要**跳过合并去跑专利点分析）。
