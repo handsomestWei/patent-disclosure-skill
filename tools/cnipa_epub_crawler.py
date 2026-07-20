@@ -12,8 +12,8 @@
 2. 新建浏览器上下文：设定 **桌面 Chrome UA**、**zh-CN**、固定 **视口**（见 ``_new_context``），使请求形态接近普通用户浏览器。
 3. ``page.goto`` 站点首页，**wait_until="load"**。
 4. **等待首页可检索**：首页在访客到达后会先经 **前端脚本/WAF 一类逻辑**，未通过前 **不会出现** 检索输入框 ``#searchStr``。本实现通过 **周期性轮询 DOM**（每 3 秒一次，总时长见 ``EPUB_WAF_MAX_WAIT_SEC``，默认 180s）直到 ``#searchStr`` 出现；**不是**用 requests 直接 POST 能等价替代的步骤。
-5. ``page.fill`` 将关键词写入 ``#searchStr``，对 ``#indexForm`` 执行 **submit**（而非单独点按钮），并 ``expect_navigation`` 等待结果页 **load**。
-6. 结果页 **安定等待**：依次尝试 **load / networkidle**（超时则忽略），再 **固定短时 sleep**，减轻列表/统计脚本未跑完就取 HTML 导致的空壳或半截 DOM。
+5. ``page.fill`` 将关键词写入 ``#searchStr``，对 ``#indexForm`` 执行 **submit**（而非单独点按钮），并等待结果页导航 **commit**。
+6. 等待结果页就绪：标题为 **「专利查询结果展示」或「无查询结果」**（见 ``EPUB_TITLE_*`` 常量），且 ``#result`` 内出现列表条目（``div.item`` / ``h1.title``）或明确零结果文案；不等待完整 ``load``。国知局改版时需同步调整常量与 ``_RESULT_PAGE_READY_JS``。
 7. ``page.content()`` 取全页 HTML；若处于导航中抛错则 **重试退避**（``_safe_page_content``），避免竞态。
 8. 后续解析由 **`cnipa_epub_parse.py`** 完成（本文件 ``search_epub_keyword`` 内会调用）。
 
@@ -63,6 +63,28 @@ def _ensure_utf8_stdio() -> None:
 
 
 EPUB_BASE = "http://epub.cnipa.gov.cn/"
+# 国知局 /Dxb/IndexQuery 结果页 <title>；改版时须同步单测与 _RESULT_PAGE_READY_JS
+EPUB_TITLE_RESULT = "专利查询结果展示"
+EPUB_TITLE_NO_HIT = "无查询结果"
+# 在浏览器内判断结果页可解析：title + #result DOM（列表或零结果文案）
+_RESULT_PAGE_READY_JS = """(titles) => {
+    const t = document.title.trim();
+    if (t === titles.noHit) return true;
+    if (t !== titles.result) return false;
+    const r = document.querySelector("#result");
+    if (!r) return false;
+    if (r.querySelector("div.item, h1.title")) return true;
+    const html = r.innerHTML;
+    if (
+        html.includes("无查询结果") ||
+        html.includes("没有找到") ||
+        html.includes("未检索到") ||
+        html.includes("0条")
+    ) {
+        return true;
+    }
+    return false;
+}"""
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -97,18 +119,6 @@ def wait_for_epub_home_ready(page: Page, *, max_wait_sec: float | None = None) -
     )
 
 
-def _wait_result_page_settled(page: Page) -> None:
-    try:
-        page.wait_for_load_state("load", timeout=30_000)
-    except Exception:
-        pass
-    try:
-        page.wait_for_load_state("networkidle", timeout=25_000)
-    except Exception:
-        pass
-    page.wait_for_timeout(800)
-
-
 def _safe_page_content(page: Page, *, max_attempts: int = 10) -> str:
     last_err: Exception | None = None
     for i in range(max_attempts):
@@ -129,9 +139,18 @@ def _safe_page_content(page: Page, *, max_attempts: int = 10) -> str:
     raise RuntimeError("_safe_page_content: 未返回内容")
 
 
+def _wait_result_page_ready(page: Page) -> None:
+    """等结果页 title 与 #result 列表/零结果 DOM 就绪（不等完整 load）。"""
+    page.wait_for_function(
+        _RESULT_PAGE_READY_JS,
+        arg={"result": EPUB_TITLE_RESULT, "noHit": EPUB_TITLE_NO_HIT},
+        timeout=120_000,
+    )
+
+
 def submit_index_search(page: Page, keyword: str) -> None:
     page.fill("#searchStr", keyword)
-    with page.expect_navigation(timeout=120_000, wait_until="load"):
+    with page.expect_navigation(timeout=120_000, wait_until="commit"):
         form = page.query_selector("#indexForm")
         if form:
             form.evaluate("el => el.submit()")
@@ -142,7 +161,7 @@ def submit_index_search(page: Page, keyword: str) -> None:
                 if (f) f.submit();
             }"""
             )
-    _wait_result_page_settled(page)
+    _wait_result_page_ready(page)
 
 
 def fetch_epub_result_html(

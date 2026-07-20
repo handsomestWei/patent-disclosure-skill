@@ -40,7 +40,7 @@ python3 tools/prior_art_search.py --mode federate --rerank \
 | 脚本 | 作用 |
 |------|------|
 | **`cnipa_epub_search.py`** | **（Step 5 优先）** 一步：拉取 + 解析，**不写结果页 HTML 落盘**；**Agent 须按 `prior_art_search.md` 分多次调用、每轮一词并自行合并 JSON**；脚本在**单次命令多词**时也会进程内循环检索并合并（人工/本地便利）；**stdout 仅一行** `EPUB_HITS_JSON:`；stderr 上 `EPUB_*` 为 **ASCII**；UTF-8 / PowerShell 见 **INSTALL.md**。 |
-| **`cnipa_epub_crawler.py`** | 仅 Playwright 拉取并**默认保存**结果页 HTML；stdout 亦含 **`EPUB_HITS_JSON:`**。 |
+| **`cnipa_epub_crawler.py`** | 仅 Playwright 拉取并**默认保存**结果页 HTML；stdout 亦含 **`EPUB_HITS_JSON:`**。结果页就绪判据：`commit` 导航后等 **title**（`EPUB_TITLE_*`）且 **`#result`** 内出现 `div.item` 或零结果文案（见脚本内 `_wait_result_page_ready`）。 |
 | **`cnipa_epub_parse.py`** | 仅解析已保存的 HTML：`python tools/cnipa_epub_parse.py path/to/_last_result_xxx.html`；字段含标题、公开号、链接、**`abstract`**（若有）。 |
 
 依赖：`pip install -r tools/requirements-cnipa.txt` 与 `python -m playwright install chromium`。环境变量见各脚本文件头。默认结果 HTML 落在 **`tools/_last_result_*.html`**（已 `.gitignore`）。

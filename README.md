@@ -180,9 +180,9 @@ patent-disclosure-skill/
 
 <a href="https://www.star-history.com/?repos=handsomestWei%2Fpatent-disclosure-skill&type=date&legend=top-left">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=handsomestWei/patent-disclosure-skill&type=date&theme=dark&legend=top-left" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=handsomestWei/patent-disclosure-skill&type=date&legend=top-left" />
-    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=handsomestWei/patent-disclosure-skill&type=date&legend=top-left" width="600" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=handsomestWei/patent-disclosure-skill&type=date&theme=dark&legend=top-left&sealed_token=3x7lB-ukmgYV6dQnnyC7mizaGl21b5P2rvt3hOF5jivrmOMC8ECvlFUwK43lQL4R5pv5RdhPx1otMUMRtT-yqdSdupltyMQXv2AwlATvoAt9vDDNDTgJ8R0mO3PZUOB6KUtFvi2N64K9vpWW5tHLUcTtN-bC56RsQ8n3CsujxIj-VcQszIwG20EET5pz" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=handsomestWei/patent-disclosure-skill&type=date&legend=top-left&sealed_token=3x7lB-ukmgYV6dQnnyC7mizaGl21b5P2rvt3hOF5jivrmOMC8ECvlFUwK43lQL4R5pv5RdhPx1otMUMRtT-yqdSdupltyMQXv2AwlATvoAt9vDDNDTgJ8R0mO3PZUOB6KUtFvi2N64K9vpWW5tHLUcTtN-bC56RsQ8n3CsujxIj-VcQszIwG20EET5pz" />
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=handsomestWei/patent-disclosure-skill&type=date&legend=top-left&sealed_token=3x7lB-ukmgYV6dQnnyC7mizaGl21b5P2rvt3hOF5jivrmOMC8ECvlFUwK43lQL4R5pv5RdhPx1otMUMRtT-yqdSdupltyMQXv2AwlATvoAt9vDDNDTgJ8R0mO3PZUOB6KUtFvi2N64K9vpWW5tHLUcTtN-bC56RsQ8n3CsujxIj-VcQszIwG20EET5pz" width="600" />
   </picture>
 </a>
 

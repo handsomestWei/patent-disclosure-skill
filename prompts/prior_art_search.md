@@ -85,7 +85,7 @@
    - **正文呈现**：交底书 1.1 中**不得**大段逐字粘贴官方摘要（避免抄袭与超字数）；应**消化后**用**自己的话**压缩为「方案概括 + 应用 + 缺点/局限」；查新笔记可保留稍长的摘录供自用核对，但须标注来源于公布站摘要。
    - **缺失时**：若某条 JSON **无** `abstract` 或为空（旧版页面 / 表格布局未解析到等），须在查新笔记中注明「该条无摘要字段」，并改用**详情页**或 **Google Patents** 等可核验来源补全理解后再写 1.1，**不得**留空理由含糊带过。
 
-6. **链接与著录**：国知局详情 URL 以脚本输出为准；**禁止编造**；若仅能从公布站得到公开号，可再配 **Google Patents** 稳定页 `https://patents.google.com/patent/CN…/en` 作为**补充**公开源（仍须打开校验）。
+6. **链接与著录**：`EPUB_HITS_JSON` 命中项在 1.1 的「来源链接」**直接使用 JSON 的 `link` 字段**（国知局公布站 `epub.cnipa.gov.cn`）；**禁止编造**。**不得**用 Google Patents URL **替换**已有 `link`。Google Patents 仅用于 **§B** 降级检索所得条目，或 JSON **无** `link`、仅知 `pub_number` 时的备选取址（如 `https://patents.google.com/patent/CN…/en`）。
 
 ### B. Google 学术与 Google Patents（**降级 / 补充**）
 
@@ -169,7 +169,8 @@ python3 ${CLAUDE_SKILL_DIR}/tools/prior_art_search.py --mode federate "job sched
 | 类型 | 推荐 URL 形式 | 说明 |
 |------|----------------|------|
 | 美国等专利（公开出版物号） | `https://patents.google.com/patent/US20240118920A1/en` | 将 `US20240118920A1` 替换为实际公开号；以 Google Patents 页面能打开且标题/摘要匹配为准。 |
-| 中国专利 | **`https://patents.google.com/patent/CNXXXXXXXXXA/en`**（或对应 B 型等） | **优先**国知局公布站或 Google Patents 稳定著录页；勿依赖易过期的检索会话 URL。 |
+| 中国专利（**§A 国知局 JSON 命中**） | JSON 的 **`link`**，如 `http://epub.cnipa.gov.cn/patent/CN119781913A` | 1.1「来源链接」**照抄 `link`**，勿改域名为 `patents.google.com`。 |
+| 中国专利（**§B / WebSearch 补条**） | `https://patents.google.com/patent/CNXXXXXXXXXA/en`（或对应 B 型等） | 仅无国知局 `link`、经 §B 检索所得条目使用；勿用于替换 §A 命中项的 `link`。 |
 | 学术论文（含 Scholar） | Scholar 条目页、出版社官方页或 **`https://doi.org/10.xxxx/...`** | Scholar 链接若重定向或镜像，以最终可长期解析的 DOI/出版社页为准。 |
 | arXiv 预印本 | `https://arxiv.org/abs/2008.09213` | `abs` 页为规范条目页；勿用未经验证的镜像域名冒充官方。 |
 | 期刊 / 会议 | 出版社 DOI：`https://doi.org/10.xxxx/...` 或官方摘要页 | 以 DOI 解析后页面与文献一致为准。 |
