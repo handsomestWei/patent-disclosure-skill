@@ -49,7 +49,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 | 交底书定稿（**.md + .docx**） | **3.2/3.4** 用 mermaid；`mermaid_render.py` → PNG 并默认出 docx。见 **`tools/README.md`** |
 | 交底书落盘 | 建议 `./outputs/{案件标识}/`；文件名 **`{案件名}_{YYYYMMDDHHmmss}`**（§7.3 第 5 点，含首次与迭代） |
 | 迭代对话留档 | 案件目录追加 **`交底书修订对话记录.md`**（`iteration_dialog_log.py`） |
-| **专利通俗解读** | **`Read`** `patent_plain_reader.md`。**先** `check_obsidian_env.py`（**强烈推荐**有库；未检测到则询问并用 `--set`；用户明确不要库才跳过）。`extract` → 叙事/权要可视化 → 公开线索由 **Agent 读 URL 写 summary** → `write_patent_obsidian_note`（入库自动 bootstrap；线索脚本抓取仅 `--fetch-clues-fallback`）。交付后可选社区插件引导；库内 ≥2 篇**须反问**关联，同意后 `link_patent_notes.py` |
+| **专利通俗解读** | **`Read`** `patent_plain_reader.md`。**先** `check_obsidian_env.py`（**强烈推荐**有库；未检测到则询问并用 `--set`；用户明确不要库才跳过）。仅公开号时用 **`fetch_patent_pdf.py`**（源表 `references/patent_pdf_sources.yaml`；**禁止**会话内现写下载脚本）→ `extract` → 叙事/权要可视化 → 公开线索由 **Agent 读 URL 写 summary** → `write_patent_obsidian_note`（入库自动 bootstrap；线索脚本抓取仅 `--fetch-clues-fallback`）。交付后可选社区插件引导；库内 ≥2 篇**须反问**关联，同意后 `link_patent_notes.py` |
 
 ---
 
@@ -70,17 +70,19 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 
 ### 专利通俗解读
 
-| 文件 | 用途 |
-|------|------|
-| `prompts/patent_plain_reader.md` | 解读主流程（取证、叙事、线索、入库） |
-| `prompts/patent_reader_self_check.md` | 交付前内部自检 |
-| `references/patent_obsidian_format.md` + `assets/patent_note_template.md` | 笔记结构与模板 |
-| `references/ipc_application_hints.yaml` | IPC 应用场景坐标 |
-| `prompts/obsidian_ofm_companion.md` | Callout / 标签 / Mermaid |
-| `prompts/obsidian_plugin_guide.md` | 交付后**可选**社区插件引导（对话，不入笔记） |
-| `references/obsidian_recommended_plugins.md` | 社区插件清单 |
-| `docs/obsidian-setup-guide.md` | 用户装 Obsidian / 社区插件（Windows） |
-| `tools/patent_reader/README.md` | 解读工具链说明 |
+| 步骤 | 文件 | 用途 |
+|------|------|------|
+| 门禁 | `check_obsidian_env.py`（见 `patent_plain_reader.md` 第 0 步） | 探测/写入库路径；强烈推荐有库 |
+| 仅公开号取 PDF | `tools/patent_reader/fetch_patent_pdf.py` + `references/patent_pdf_sources.yaml` | 固化下载（第 1 步前）；**禁止**会话内现写脚本 |
+| 主流程 | `prompts/patent_plain_reader.md` | extract / 附图 / 权树校对 / 线索 / 写笔记 / 入库（须先 Read） |
+| 写笔记时 | `prompts/obsidian_ofm_companion.md` + `references/patent_obsidian_format.md` + `assets/patent_note_template.md` | Callout / 结构 / 模板 |
+| 写笔记时（按需） | `references/ipc_application_hints.yaml` | IPC 应用场景坐标 |
+| 自检 | `prompts/patent_reader_self_check.md` | 交付前内部自检（不入笔记） |
+| 交付时（对话） | `prompts/obsidian_plugin_guide.md` | 可选社区插件引导（不入笔记） |
+| 用户文档 | `docs/obsidian-setup-guide.md` | 装 Obsidian / 社区插件（给人看，勿当主链全文 Read） |
+| 按需 | `tools/patent_reader/README.md` | 解读工具链说明 |
+
+顺序摘要：门禁 →（仅公开号）`fetch_patent_pdf` → 主流程（extract / 附图 / 线索 / 入库）→ 写笔记时读 ofm/format/模板 → lint 后自检 → 已入库则交付引导；用户已给 PDF/全文则跳过下载；`obsidian-setup-guide` 与工具 README 仅按需查阅。
 
 ---
 
@@ -111,7 +113,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 
 **步骤**：
 
-1. **`Read`** `patent_plain_reader.md` → **先跑** `check_obsidian_env.py`（强烈推荐有库；无库则询问路径/`--set`，或确认仅 outputs）→ 取证 → 叙事与可视化 → Agent 读线索 URL 写 summary → 写笔记 → lint → `write_patent_obsidian_note`（有库时入库并**自动** bootstrap）  
+1. **`Read`** `patent_plain_reader.md` → **先跑** `check_obsidian_env.py`（强烈推荐有库；无库则询问路径/`--set`，或确认仅 outputs）→ **仅公开号、无本地全文时**跑 **`fetch_patent_pdf.py`**（源表 `patent_pdf_sources.yaml`；失败可 `cnipa_epub_search` 核验元数据，**勿**现写下载脚本）→ `extract_patent_text`（及附图）→ 校对 `claim_tree` / 写 `claim_deltas` → 叙事与可视化 → Agent 读线索 URL 写 summary → 写笔记 → lint → `write_patent_obsidian_note`（有库时入库并**自动** bootstrap）  
 2. **`Read`** `obsidian_ofm_companion.md` + `patent_obsidian_format.md` + 模板  
 3. **`Read`** `patent_reader_self_check.md` → lint 通过后复核  
 4. 已入库：对话末尾 **`Read`** `obsidian_plugin_guide.md`（仅可选社区插件；勿要求用户再装 CSS）  
@@ -141,5 +143,5 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 □ 查新：优先 cnipa_epub_search（分次一词并合并 EPUB_HITS_JSON）；abstract 必用；异常再 WebSearch；1.1 与区别论述已写
 □ 除用户跳过外已做摘要预览；脱敏/mermaid/§7.7/3.4.1 与 .md+.docx 时间戳文件名符合要求；正文无技能仓库类脚注
 □ 定稿对话含 §7.6 权利要求偏向点（不入正文、不捏造）；自检仅后台，正文无自检清单
-□ 【模式 B】已 check_obsidian_env；强烈推荐有库（无库已确认降级 outputs）；叙事/线索/图谱要点已覆盖；入库自动 bootstrap，未误导用户手装 CSS；≥2 篇已反问关联并按需 link_patent_notes
+□ 【模式 B】已 check_obsidian_env；仅公开号已用 fetch_patent_pdf（未现写下载脚本）；强烈推荐有库（无库已确认降级 outputs）；叙事/线索/图谱要点已覆盖；入库自动 bootstrap，未误导用户手装 CSS；≥2 篇已反问关联并按需 link_patent_notes
 ```

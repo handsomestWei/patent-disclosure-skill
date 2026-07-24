@@ -7,8 +7,8 @@
   python tools/patent_reader/write_patent_obsidian_note.py --content-file note.md \\
       --manifest source_manifest.json --lint-json lint.json \\
       [--context-anchor context_anchor.json] [--bundle synthesis_bundle.json] \\
-      [--public-clues public_clues.json] [--workdir tmp/patent_reader/RUN] \\
-      [--strict-figures] [--include-review]
+      [--public-clues public_clues.json] [--claim-deltas claim_deltas.json] \\
+      [--workdir tmp/patent_reader/RUN] [--strict-figures] [--include-review]
 """
 from __future__ import annotations
 
@@ -21,14 +21,23 @@ from datetime import datetime
 from pathlib import Path
 
 try:
-    from common import optional_path, resolve_domain, runtime_config, slugify_pub
+    from common import (
+        normalize_claim_tree,
+        optional_path,
+        resolve_domain,
+        runtime_config,
+        slugify_pub,
+    )
     from obsidian import (
         bootstrap_vault,
         build_canvas,
+        claim_deltas_from_tree,
         enrich_note_frontmatter,
         ensure_canvas_nav,
         ensure_domain_index,
         harvest_claim_summaries_from_note,
+        load_claim_deltas,
+        merge_claim_summaries,
         render_claim_tree_markdown,
         scan_vault_related,
         try_obsidian_cli_property,
@@ -37,6 +46,7 @@ try:
     )
 except ImportError:  # python -m 包内导入
     from tools.patent_reader.common import (
+        normalize_claim_tree,
         optional_path,
         resolve_domain,
         runtime_config,
@@ -45,10 +55,13 @@ except ImportError:  # python -m 包内导入
     from tools.patent_reader.obsidian import (
         bootstrap_vault,
         build_canvas,
+        claim_deltas_from_tree,
         enrich_note_frontmatter,
         ensure_canvas_nav,
         ensure_domain_index,
         harvest_claim_summaries_from_note,
+        load_claim_deltas,
+        merge_claim_summaries,
         render_claim_tree_markdown,
         scan_vault_related,
         try_obsidian_cli_property,
@@ -290,6 +303,72 @@ def _note_link_name(dest: Path, vault: Path) -> str:
     return str(rel.with_suffix("")).replace("\\", "/")
 
 
+def resolve_source_pdf(
+    manifest: dict, workdir: Path | None
+) -> Path | None:
+    """定位官方 PDF：manifest.source_path → workdir/source/*.{pdf,PDF}。"""
+    candidates: list[Path] = []
+    sp = str(manifest.get("source_path") or "").strip()
+    if sp:
+        candidates.append(Path(sp))
+    if workdir is not None:
+        src_dir = workdir / "source"
+        if src_dir.is_dir():
+            candidates.extend(sorted(src_dir.glob("*.pdf")))
+            candidates.extend(sorted(src_dir.glob("*.PDF")))
+        candidates.extend(sorted(workdir.glob("*.pdf")))
+    seen: set[str] = set()
+    for p in candidates:
+        try:
+            rp = p.resolve()
+        except OSError:
+            continue
+        key = str(rp).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        if rp.is_file() and rp.suffix.lower() == ".pdf":
+            return rp
+    return None
+
+
+def copy_source_pdf_to_note_dir(
+    pdf: Path, note_dir: Path, pub: str
+) -> Path:
+    """复制到 note_dir/source/{pub}.pdf（幂等覆盖）。"""
+    dest_dir = note_dir / "source"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / f"{slugify_pub(pub)}.pdf"
+    shutil.copy2(pdf, dest)
+    return dest
+
+
+def ensure_source_pdf_nav(content: str, *, pub: str) -> str:
+    """导航中补「官方 PDF」wikilink（同目录 source/）。"""
+    link = f"[[source/{slugify_pub(pub)}.pdf|官方 PDF]]"
+    if link in content or f"source/{slugify_pub(pub)}.pdf" in content:
+        return content
+    m = re.search(
+        r"(##\s*Obsidian 导航\s*\n)([\s\S]*?)(?=\n##\s|\n> \[!|\Z)", content
+    )
+    if not m:
+        return content
+    block = m.group(2)
+    lines = block.rstrip().splitlines()
+    insert_at = 0
+    for i, line in enumerate(lines):
+        if any(
+            k in line
+            for k in ("权项锚点", "说明书段落", "图谱", "canvas")
+        ):
+            insert_at = i + 1
+    if insert_at == 0:
+        insert_at = len(lines)
+    lines.insert(insert_at, f"- {link}")
+    new_block = "\n".join(lines) + "\n"
+    return content[: m.start(2)] + new_block + content[m.end(2) :]
+
+
 def _ensure_nav_section(content: str, nav_lines: list[str]) -> str:
     """合并/更新 Obsidian 导航节（已有模板导航时也会补全真实链接）。"""
     if not nav_lines:
@@ -485,7 +564,7 @@ def harvest_narrative_from_note(content: str) -> dict[str, str]:
 
 
 def _strip_stale_figure_blocks(content: str) -> str:
-    """去掉过时的 insert=0 占位 callout / 旧自动附图节。"""
+    """去掉过时的 insert=0 占位 callout / 旧自动附图节 / 散落的 ### 图N 块。"""
     content = re.sub(
         r"(?ms)^> \[!figure\][^\n]*\n(?:>.*\n)*?>[^\n]*insert\s*=\s*0[^\n]*\n(?:>.*\n)*",
         "",
@@ -496,6 +575,23 @@ def _strip_stale_figure_blocks(content: str) -> str:
         "",
         content,
     )
+    # 第六节内散落的图标题+嵌入（避免重复注入）
+    m6 = re.search(
+        r"(^##\s*六、[\s\S]*?)(?=^##\s*七、|\Z)", content, re.M
+    )
+    if m6:
+        sec = m6.group(1)
+        sec2 = re.sub(
+            r"(?ms)^###\s*图\s*\d+\s*\n+(?:!\[\[[^\]]+\]\]\s*\n(?:\*[^\n]+\*\s*\n)*)+",
+            "",
+            sec,
+        )
+        sec2 = re.sub(
+            r"(?ms)^!\[\[images/[^\]]+\]\]\s*\n(?:\*[^\n]+\*\s*\n)*",
+            "",
+            sec2,
+        )
+        content = content[: m6.start(1)] + sec2 + content[m6.end(1) :]
     return content
 
 
@@ -543,8 +639,23 @@ def _inject_figure_embeds(
         if "images/" not in embed and fname:
             embed = f"![[images/{fname}]]"
         page = f.get("page") or f.get("page_number")
-        # 用户可见说明只用页码，不暴露 page_xxx_xref_yy.png 等内部文件名
-        cap = f"第 {page} 页" if page else f"预览 {i}"
+        label = str(f.get("label") or "")
+        num_m = re.search(r"图\s*(\d+)", label) or re.search(
+            r"图(\d+)", fname
+        )
+        fig_no = num_m.group(1) if num_m else None
+        # 用户可见说明只用页码/图号，不暴露内部文件名
+        if fig_no and page:
+            cap = f"图{fig_no}（第 {page} 页）"
+        elif fig_no:
+            cap = f"图{fig_no}"
+        elif page:
+            cap = f"第 {page} 页"
+        else:
+            cap = f"预览 {i}"
+        if fig_no:
+            block_lines.append(f"### 图{fig_no}")
+            block_lines.append("")
         block_lines.append(embed)
         block_lines.append(f"*{cap}*")
         block_lines.append("")
@@ -593,6 +704,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--context-anchor", default=None, type=optional_path)
     ap.add_argument("--bundle", default=None, type=optional_path)
     ap.add_argument("--public-clues", default=None, type=optional_path)
+    ap.add_argument(
+        "--claim-deltas",
+        default=None,
+        type=optional_path,
+        help="Agent 填写的本项新增 JSON（缺省读 workdir/claim_deltas.json）",
+    )
     ap.add_argument("--workdir", default=None, type=optional_path)
     ap.add_argument(
         "--strict-figures",
@@ -614,6 +731,12 @@ def main(argv: list[str] | None = None) -> int:
         "--fetch-clues-fallback",
         action="store_true",
         help="线索缺 summary 时用脚本 HTTP 降级抓取（默认关闭；摘要应由 Agent 主路径填写）",
+    )
+    ap.add_argument(
+        "--copy-source-pdf",
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="将官方 PDF 复制到笔记目录 source/（默认开启；--no-copy-source-pdf 关闭）",
     )
     ap.add_argument("--output", default="", help="状态 JSON 路径")
     args = ap.parse_args(argv)
@@ -775,11 +898,40 @@ def main(argv: list[str] | None = None) -> int:
     if args.workdir:
         ct_path = args.workdir.resolve() / "claim_tree.json"
         if ct_path.is_file():
-            claim_tree = json.loads(ct_path.read_text(encoding="utf-8"))
+            raw_tree = json.loads(ct_path.read_text(encoding="utf-8"))
+            review_meta = (
+                raw_tree.get("review") if isinstance(raw_tree, dict) else None
+            )
+            claim_tree = normalize_claim_tree(raw_tree)
+            if isinstance(review_meta, dict):
+                claim_tree["review"] = review_meta
 
-    # 第三节：树形一览表；并旁路保存 claim_tree 供 Canvas/关联刷新
+    # 第三节：树形一览表；「本项新增」优先 Agent claim_deltas，启发式仅降级
     if claim_tree and (claim_tree.get("nodes") or []):
-        summaries = harvest_claim_summaries_from_note(content)
+        agent_deltas: dict[int, str] = {}
+        delta_path = args.claim_deltas
+        if delta_path is None and args.workdir:
+            cand = args.workdir.resolve() / "claim_deltas.json"
+            if cand.is_file():
+                delta_path = cand
+        if delta_path and Path(delta_path).is_file():
+            agent_deltas = load_claim_deltas(Path(delta_path))
+        # note_plan.json 也可内嵌 claim_deltas
+        if args.workdir:
+            plan_path = args.workdir.resolve() / "note_plan.json"
+            if plan_path.is_file():
+                try:
+                    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+                    agent_deltas = merge_claim_summaries(
+                        agent_deltas, load_claim_deltas(plan)
+                    )
+                except (OSError, json.JSONDecodeError):
+                    pass
+        summaries = merge_claim_summaries(
+            harvest_claim_summaries_from_note(content),
+            claim_deltas_from_tree(claim_tree),
+            agent_deltas,
+        )
         content = upsert_claim_tree_section(
             content,
             render_claim_tree_markdown(
@@ -791,6 +943,20 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(claim_tree, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        # 旁路保存 Agent deltas，供 Canvas/再入库
+        if agent_deltas and args.workdir:
+            side_deltas = {
+                "source": "agent",
+                "deltas": [
+                    {"claim": n, "delta": summaries[n]}
+                    for n in sorted(agent_deltas)
+                    if n in summaries
+                ],
+            }
+            (args.workdir.resolve() / "claim_deltas.json").write_text(
+                json.dumps(side_deltas, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
         if args.workdir:
             try:
                 from obsidian import claim_tree_to_mermaid
@@ -885,6 +1051,61 @@ def main(argv: list[str] | None = None) -> int:
         content, canvas_rel if vault else canvas_path.name
     )
 
+    desc_para_path = ""
+    desc_para_cited: list[str] = []
+    try:
+        from desc_paragraphs import (
+            load_description_paragraphs,
+            materialize_description_paragraphs,
+        )
+    except ImportError:
+        from tools.patent_reader.desc_paragraphs import (
+            load_description_paragraphs,
+            materialize_description_paragraphs,
+        )
+
+    workdir = args.workdir
+    paragraphs = load_description_paragraphs(workdir)
+    content, para_dest, desc_para_cited = materialize_description_paragraphs(
+        content=content,
+        pub=pub,
+        note_dir=base,
+        paragraphs=paragraphs,
+        cited_only=True,
+    )
+    if para_dest is not None:
+        desc_para_path = str(para_dest)
+
+    try:
+        from note_cites import enhance_note_citations
+    except ImportError:
+        from tools.patent_reader.note_cites import enhance_note_citations
+
+    content, claim_anchors_path, claim_anchor_nums = enhance_note_citations(
+        content,
+        pub=pub,
+        note_dir=base,
+        claim_tree=claim_tree if isinstance(claim_tree, dict) else None,
+        claim_summaries=harvest_claim_summaries_from_note(content),
+        insert_figs=insert_figs,
+    )
+
+    source_pdf_copied = ""
+    if args.copy_source_pdf:
+        src_pdf = resolve_source_pdf(manifest, workdir)
+        if src_pdf is not None:
+            try:
+                dest_pdf = copy_source_pdf_to_note_dir(src_pdf, base, pub)
+                source_pdf_copied = str(dest_pdf)
+                content = ensure_source_pdf_nav(content, pub=pub)
+            except OSError as exc:
+                print(f"WARN copy-source-pdf failed: {exc}", file=sys.stderr)
+        else:
+            print(
+                "WARN copy-source-pdf: 未找到官方 PDF（manifest.source_path / workdir/source）",
+                file=sys.stderr,
+            )
+
     if vault:
         gloss_index = vault / glossary_dir / "_术语索引.md"
         for g in glossary_resolved:
@@ -898,6 +1119,13 @@ def main(argv: list[str] | None = None) -> int:
                     dedupe_key=g["term"],
                 )
 
+    try:
+        from note_cites import escape_wikilink_pipes_in_tables
+    except ImportError:
+        from tools.patent_reader.note_cites import escape_wikilink_pipes_in_tables
+
+    # 表格内 wikilink 别名的 | 必须转义，否则会露路径、拆列
+    content = escape_wikilink_pipes_in_tables(content)
     dest.write_text(content, encoding="utf-8")
 
     moc_paths: list[str] = []
@@ -932,6 +1160,12 @@ def main(argv: list[str] | None = None) -> int:
     status = {
         "written": str(dest),
         "canvas": str(canvas_path) if canvas_path.is_file() else "",
+        "description_paragraphs": desc_para_path,
+        "description_paragraphs_cited": desc_para_cited,
+        "claim_anchors": str(claim_anchors_path) if claim_anchors_path else "",
+        "claim_anchors_count": len(claim_anchor_nums),
+        "source_pdf": source_pdf_copied,
+        "copy_source_pdf": bool(args.copy_source_pdf),
         "domain": domain,
         "obsidian": bool(vault),
         "bootstrap": bootstrap_actions,
@@ -949,6 +1183,14 @@ def main(argv: list[str] | None = None) -> int:
     print(f"OK written: {dest}")
     if canvas_path.is_file():
         print(f"CANVAS: {canvas_path}")
+    if desc_para_path:
+        print(f"DESC_PARAS: {desc_para_path} cited={len(desc_para_cited)}")
+    if claim_anchors_path:
+        print(
+            f"CLAIM_ANCHORS: {claim_anchors_path} count={len(claim_anchor_nums)}"
+        )
+    if source_pdf_copied:
+        print(f"SOURCE_PDF: {source_pdf_copied}")
     if insert_figs:
         print(f"FIGURES_INSERT: {len(insert_figs)}")
     for p in moc_paths:

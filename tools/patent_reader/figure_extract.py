@@ -1,4 +1,4 @@
-"""专利附图视觉引擎（参考 DeepPaperNote extract_pdf_assets，专利图号规则定制）。
+"""专利附图抽取：图注锚定 + bbox 裁切 + 质量门。
 
 能力：
   - 检测「图 N / FIG. N」等图注

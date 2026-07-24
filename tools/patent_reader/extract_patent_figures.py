@@ -2,7 +2,7 @@
 """
 从专利 PDF 抽取附图（caption+bbox 裁切 + xref 回退 + 质量门）。
 
-参考 DeepPaperNote extract_pdf_assets 的视觉引擎思路，图号规则改为专利「图 N」。
+按专利图注「图 N / FIG. N」锚定邻近矢量/嵌入图 bbox，裁切 PNG 并做质量门决策。
 
 依赖：pip install -r tools/patent_reader/requirements.txt
 

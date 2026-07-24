@@ -68,7 +68,7 @@ def claim_delta_text(
     is_independent: bool = False,
     limit: int = 72,
 ) -> str:
-    """从权项原文预览抽出「本项新增」短句（去掉如权利要求…套话）。"""
+    """从权项原文预览抽出「本项新增」短句（启发式降级；优先用 Agent claim_deltas）。"""
     t = re.sub(r"\s+", " ", (text_preview or "").strip())
     t = re.sub(
         r"^如权利要求[\d、或与以及至到\s]+所述的[^，。；]{0,80}[，,；;]?\s*",
@@ -87,6 +87,87 @@ def claim_delta_text(
     if len(t) > limit:
         t = t[: limit - 1] + "…"
     return t or "（见原文）"
+
+
+def load_claim_deltas(raw) -> dict[int, str]:
+    """解析 Agent「本项新增」JSON。
+
+    支持：
+    - {"deltas":[{"claim":1,"delta":"…"}, …]}
+    - {"1":"…","2":"…"} / {"deltas":{"1":"…"}}
+    - [{"claim":1,"delta":"…"}] / [{"number":1,"summary":"…"}]
+    """
+    out: dict[int, str] = {}
+    if raw is None:
+        return out
+    if isinstance(raw, Path):
+        if not raw.is_file():
+            return out
+        try:
+            raw = json.loads(raw.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return out
+    if isinstance(raw, list):
+        items = raw
+    elif isinstance(raw, dict):
+        if isinstance(raw.get("deltas"), list):
+            items = raw["deltas"]
+        elif isinstance(raw.get("deltas"), dict):
+            items = [
+                {"claim": k, "delta": v} for k, v in raw["deltas"].items()
+            ]
+        elif isinstance(raw.get("claim_deltas"), (list, dict)):
+            return load_claim_deltas(raw.get("claim_deltas"))
+        else:
+            # 纯映射：键为权号
+            items = [{"claim": k, "delta": v} for k, v in raw.items() if str(k).isdigit() or isinstance(k, int)]
+    else:
+        return out
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        num = item.get("claim", item.get("number", item.get("id")))
+        text = item.get("delta", item.get("summary", item.get("text", item.get("本项新增"))))
+        try:
+            n = int(num)
+        except (TypeError, ValueError):
+            continue
+        s = re.sub(r"\s+", " ", str(text or "").strip())
+        if n > 0 and s:
+            out[n] = s
+    return out
+
+
+def claim_deltas_from_tree(claim_tree: dict | None) -> dict[int, str]:
+    """若 claim_tree.nodes[].delta / agent_delta 已由 Agent 写入，则回收。"""
+    out: dict[int, str] = {}
+    if not claim_tree:
+        return out
+    for n in claim_tree.get("nodes") or []:
+        num = n.get("number")
+        text = n.get("delta") or n.get("agent_delta") or n.get("summary")
+        if num is None or not text:
+            continue
+        try:
+            out[int(num)] = re.sub(r"\s+", " ", str(text).strip())
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def merge_claim_summaries(*parts: dict[int, str] | None) -> dict[int, str]:
+    """后写覆盖先写。推荐顺序：heuristic←note←tree←agent。"""
+    out: dict[int, str] = {}
+    for part in parts:
+        for k, v in (part or {}).items():
+            try:
+                n = int(k)
+            except (TypeError, ValueError):
+                continue
+            s = re.sub(r"\s+", " ", str(v or "").strip())
+            if n > 0 and s:
+                out[n] = s
+    return out
 
 
 def _mermaid_escape(s: str) -> str:
@@ -1806,8 +1887,9 @@ def _is_managed_graph_query(query: str) -> bool:
     )
 
 
-# 关系图保留 Canvas，但过滤掉附图 PNG 等（search 与 Obsidian 搜索语法一致）
-GRAPH_IMAGE_EXCLUDE_TERMS = (
+# 关系图保留 Canvas/PDF，过滤附图、旁路 JSON、悬停旁路笔记
+# （search 与 Obsidian 搜索语法一致；负向 file: 排除节点）
+GRAPH_EXCLUDE_TERMS = (
     "-file:.png",
     "-file:.jpg",
     "-file:.jpeg",
@@ -1817,16 +1899,28 @@ GRAPH_IMAGE_EXCLUDE_TERMS = (
     "-file:.bmp",
     "-file:.tif",
     "-file:.tiff",
+    "-file:.json",
+    "-file:.jsonl",
+    "-file:_权项锚点",
+    "-file:_说明书段落",
 )
 
+# 兼容旧名
+GRAPH_IMAGE_EXCLUDE_TERMS = GRAPH_EXCLUDE_TERMS
 
-def _merge_graph_search_hide_images(existing: str) -> str:
-    """在保留用户自定义 filter 的前提下，确保排除图片附件。"""
+
+def _merge_graph_search_excludes(existing: str) -> str:
+    """在保留用户自定义 filter 的前提下，确保排除噪声节点。"""
     parts = [p for p in (existing or "").split() if p]
-    for term in GRAPH_IMAGE_EXCLUDE_TERMS:
+    for term in GRAPH_EXCLUDE_TERMS:
         if term not in parts:
             parts.append(term)
     return " ".join(parts)
+
+
+def _merge_graph_search_hide_images(existing: str) -> str:
+    """兼容旧调用名。"""
+    return _merge_graph_search_excludes(existing)
 
 
 def ensure_graph_color_groups(
@@ -1879,9 +1973,9 @@ def ensure_graph_color_groups(
     ]
     data["colorGroups"] = desired + kept
     data["collapse-color-groups"] = False  # 展开 Groups，便于看到配色图例
-    data["showAttachments"] = True  # 保留 Canvas；图片用 search 排除
-    data["search"] = _merge_graph_search_hide_images(str(data.get("search") or ""))
-    data["collapse-filter"] = False  # 展开过滤器，便于看到已排除图片
+    data["showAttachments"] = True  # 保留 Canvas/PDF；图片与 JSON 用 search 排除
+    data["search"] = _merge_graph_search_excludes(str(data.get("search") or ""))
+    data["collapse-filter"] = False  # 展开过滤器，便于看到已排除项
     graph_path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",

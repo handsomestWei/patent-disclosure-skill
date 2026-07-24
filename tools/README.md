@@ -276,11 +276,10 @@ python3 tools/pptx_to_md.py -i ./raw/deck.pptx -o ./knowledge/deck.md --media-di
 
 ## 专利通俗解读（阅读模式）
 
-脚本已迁至 **`tools/patent_reader/`**，详见 **[`patent_reader/README.md`](patent_reader/README.md)**。
+脚本与说明见 **[`patent_reader/README.md`](patent_reader/README.md)**。
 
 ```bash
 pip install -r tools/patent_reader/requirements.txt
-python tools/patent_reader/setup_obsidian_vault.py
 ```
 
 ---

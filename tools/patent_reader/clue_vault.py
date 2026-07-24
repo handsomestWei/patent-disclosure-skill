@@ -586,6 +586,11 @@ def _clue_link(clue: dict, title: str | None = None) -> str:
     return f"[[clues/{stem}|{t}]]"
 
 
+def _table_wikilink(target: str, alias: str) -> str:
+    """表格单元格内 wikilink：别名前的 | 必须转义，否则会被拆列。"""
+    return f"[[{target}\\|{alias}]]"
+
+
 def _clue_highlight(clue: dict, *, limit: int = 72) -> str:
     """取摘要首条要点或理由短句，供旁注。"""
     summary = sanitize_clue_summary(
@@ -601,6 +606,222 @@ def _clue_highlight(clue: dict, *, limit: int = 72) -> str:
             return s[:limit]
     reason = (clue.get("reason") or "").strip()
     return reason[:limit] if reason else (clue.get("title") or "公开线索")
+
+
+def _feature_anchor_tokens(ent: dict) -> list[str]:
+    """特征名/行文本中用于贴合抽取的锚点词。"""
+    label = (ent.get("label") or "").strip()
+    text = (ent.get("text") or "").strip()
+    tokens = _term_match_tokens(label)
+    tokens.extend(_term_match_tokens(text))
+    # 三字词（如「纤维素」「碱尿素」）比二元组更贴切
+    for src in (label, text):
+        chars = "".join(re.findall(r"[\u4e00-\u9fff]", src or ""))
+        tokens.extend(chars[i : i + 3] for i in range(max(0, len(chars) - 2)))
+    tokens.extend(re.findall(r"\d+(?:\.\d+)?(?:万|%|nm|μm|um|µm|mm)?", label, re.I))
+    # 同义扩展，便于「涂覆」对上「涂布」
+    expanded: list[str] = []
+    for t in tokens:
+        expanded.append(t)
+        if t in _FEATURE_SYNONYMS:
+            expanded.extend(_FEATURE_SYNONYMS[t])
+        elif len(t) == 2 and t in _FEATURE_SYNONYMS:
+            expanded.extend(_FEATURE_SYNONYMS[t])
+    return list(dict.fromkeys(t for t in expanded if len(t) >= 2))[:36]
+
+
+def _clue_snippet_pool(clue: dict, *, include_title: bool = False) -> list[str]:
+    """线索可抽取短句池：只用摘要要点/分句做专属贴合（不用标题/理由抢分）。"""
+    pool: list[str] = []
+    summary = sanitize_clue_summary(
+        clue.get("summary") or "",
+        title=clue.get("title") or "",
+        reason=clue.get("reason") or "",
+    )
+    for ln in summary.replace("\\n", "\n").splitlines():
+        s = ln.strip()
+        if s.startswith("- "):
+            s = s[2:].strip()
+        if not s or s.startswith("页面要点"):
+            continue
+        if len(s) <= 100:
+            pool.append(s)
+        for part in re.split(r"[。；;，,]", s):
+            part = part.strip(" 　，,")
+            if 8 <= len(part) <= 90:
+                pool.append(part)
+    if include_title:
+        title = (clue.get("title") or "").strip()
+        if title:
+            pool.append(title)
+    return list(dict.fromkeys(pool))
+
+
+def _score_snippet_for_feature(snippet: str, tokens: list[str]) -> int:
+    """命中分 − 长度惩罚，使更短、更贴特征的分句胜出。"""
+    if not snippet or not tokens:
+        return 0
+    hits = 0
+    weight = 0
+    for t in tokens:
+        if t in snippet:
+            hits += 1
+            weight += 5 if len(t) >= 3 else 2
+            if re.search(r"\d", t):
+                weight += 3
+    if hits <= 0:
+        return 0
+    # 密度优先：同等命中偏好短句
+    return weight * 10 + hits * 3 - min(len(snippet), 80)
+
+def clue_highlight_for_feature(clue: dict, ent: dict, *, limit: int = 56) -> tuple[str, bool]:
+    """按特征从线索摘要中抽一句贴合点。
+
+    返回 (短句, 是否特征专属)。专属=摘要中命中该特征锚点；标题弱共现不算专属。
+    """
+    label = (ent.get("label") or "").strip()
+    tokens = _feature_anchor_tokens(ent)
+    best = ""
+    best_score = 0
+    for sn in _clue_snippet_pool(clue, include_title=False):
+        sc = _score_snippet_for_feature(sn, tokens)
+        if sc > best_score:
+            best_score = sc
+            best = sn
+    if not best or best_score < 20:
+        return "", False
+    # 数值/尺寸类特征：摘要未出现数字或单位时，不算专属贴合
+    nums = re.findall(r"\d+", label)
+    if nums and not any(n in best for n in nums):
+        if re.search(r"分子量|直径|粒径|厚度|孔隙|孔隙率|μm|um|nm|%|万", label, re.I):
+            return "", False
+    return best[:limit], True
+
+
+def clue_highlight_for_text(clue: dict, text: str, *, limit: int = 56) -> tuple[str, bool]:
+    """按任意锚点文本（权项摘要/术语名）从线索摘要抽贴合句（启发式降级）。"""
+    text = (text or "").strip()
+    if not text:
+        return "", False
+    return clue_highlight_for_feature(
+        clue,
+        {"id": "", "label": text[:48], "text": text[:240]},
+        limit=limit,
+    )
+
+
+def normalize_anchor_fits(clue: dict) -> list[dict]:
+    """Agent 写入的锚点贴合：[{kind, key, fit}, ...]。"""
+    raw = clue.get("anchor_fits") or clue.get("fits") or []
+    if not isinstance(raw, list):
+        return []
+    out: list[dict] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        kind = str(item.get("kind") or item.get("type") or "").strip().lower()
+        if kind in ("feat", "特征"):
+            kind = "feature"
+        elif kind in ("权利要求", "claim_id", "权"):
+            kind = "claim"
+        elif kind in ("术语",):
+            kind = "term"
+        if kind not in ("feature", "claim", "term"):
+            continue
+        key = item.get("key")
+        if key is None:
+            key = item.get("id") or item.get("name") or item.get("label")
+        if key is None or str(key).strip() == "":
+            continue
+        fit = str(item.get("fit") or item.get("highlight") or item.get("point") or "").strip()
+        if not fit:
+            continue
+        out.append({"kind": kind, "key": str(key).strip(), "fit": fit[:120]})
+    return out
+
+
+def agent_fits_for(clue: dict, kind: str) -> list[tuple[str, str]]:
+    """返回 (key, fit) 列表；kind=feature|claim|term。"""
+    return [
+        (str(x["key"]), str(x["fit"]))
+        for x in normalize_anchor_fits(clue)
+        if x.get("kind") == kind
+    ]
+
+
+def _claim_key_to_num(key: str) -> int | None:
+    m = re.search(r"\d+", str(key or ""))
+    return int(m.group(0)) if m else None
+
+
+def harvest_claim_bodies(content: str) -> dict[int, str]:
+    """从第四节 patent-claim callout 抽取权号 → 正文短摘。"""
+    out: dict[int, str] = {}
+    for m in re.finditer(
+        r">\s*\[!patent-claim\]\s*权利要求\s*(\d+)\b([\s\S]*?)(?=\n>\s*\[!patent-claim\]|\n##\s|\n\| 特征 \||\Z)",
+        content or "",
+        re.M,
+    ):
+        num = int(m.group(1))
+        body = m.group(2)
+        # 去掉引用前缀与空行，拼成一段
+        bits: list[str] = []
+        for ln in body.splitlines():
+            s = ln.strip()
+            if s.startswith(">"):
+                s = s[1:].strip()
+            if not s or s.startswith("[!"):
+                continue
+            bits.append(s)
+        text = " ".join(bits)
+        text = re.sub(r"\s+", " ", text).strip()
+        if text:
+            out[num] = text[:320]
+    return out
+
+
+def _distinct_clue_lines(clues: list[dict], *, limit: int = 3, hl_limit: int = 42) -> list[str]:
+    """多条线索各取一句不重复的摘要要点（供 L2 氛围旁注）。"""
+    lines: list[str] = []
+    seen: set[str] = set()
+    for c in clues:
+        hl = _clue_highlight(c, limit=hl_limit)
+        key = re.sub(r"\s+", "", hl)[:18]
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        lines.append(f"- {_clue_link(c, (c.get('title') or '')[:22])} — {hl}")
+        if len(lines) >= limit:
+            break
+    return lines
+
+
+def feature_clue_affinity(ent: dict, clue: dict) -> int:
+    """特征↔线索相关度（越高越值得展开贴合句）。"""
+    blob = " ".join(
+        [
+            clue.get("title") or "",
+            clue.get("reason") or "",
+            clue.get("summary") or "",
+            clue.get("page_title") or "",
+        ]
+    )
+    label = (ent.get("label") or "").strip()
+    score = 0
+    if _label_hits_blob(label, blob):
+        score += 3
+    overlap = _tokenize(ent.get("text") or label) & _tokenize(blob)
+    score += min(4, len(overlap))
+    nums = re.findall(r"\d+", label)
+    if nums:
+        if any(n in blob for n in nums):
+            score += 4
+        else:
+            score -= 1
+    _, specific = clue_highlight_for_feature(clue, ent)
+    if specific:
+        score += 3
+    return score
 
 
 def match_clue_to_note(
@@ -779,7 +1000,7 @@ def inject_clue_annotations(content: str, clues: list[dict]) -> str:
     content = _strip_injected_clue_blocks(content)
     n = len(clues)
     primary = clues[0]
-    point = _clue_highlight(primary)
+    distinct_l2 = _distinct_clue_lines(clues, limit=3)
 
     # —— L1：导航 + 文首入口 ——
     nav_item = f"[[clues/_线索索引|公开线索（{n} 条）]]"
@@ -799,32 +1020,29 @@ def inject_clue_annotations(content: str, clues: list[dict]) -> str:
     if "公开线索入口" not in content:
         content = _insert_before_heading(content, r"^##\s*一、", l1)
 
-    # —— L2：一、二、七、八、九 ——
+    # —— L2：氛围旁注（各节角度不同，避免同一摘要首句跨节刷屏）——
     l2_one = _render_warning(
         "公开案例（推测）",
         [
-            f"公开语境示例：{point} — {_clue_link(primary)}。",
-            "仅供理解行业落地话术，**不能**等同或缩小本专利保护范围。",
+            "进入正文前可先扫一眼公开语境（**不能**等同保护范围）：",
+            *(distinct_l2[:1] or [f"- {_clue_link(primary)}"]),
         ],
     )
     content = _insert_before_heading(content, r"^##\s*二、", l2_one)
 
-    l2_two = _render_warning(
-        "公开案例（推测）",
-        [
-            "叙事对照：外部材料多谈「涂覆隔膜 / 耐温安全」产品能力；"
-            "本案专利叙事还强调**基膜配方与湿法工艺组合**（以正文权要/说明书为准）。",
-            " · ".join(_clue_link(c) for c in clues[:3]),
-        ],
-    )
+    l2_two_body = [
+        "叙事对照：下列为公开材料各自强调的要点；本案以**权要/说明书**为准。",
+        *(distinct_l2[:3] or [f"- {_clue_link(c)}" for c in clues[:3]]),
+    ]
+    l2_two = _render_warning("公开案例（推测）", l2_two_body)
     content = _insert_before_heading(content, r"^##\s*三、", l2_two)
 
     l2_seven = _render_warning(
         "差别对照·公开线索",
         [
-            "对照公开产品话术时：可看外部强调的「涂覆 / 耐热 / 粘接」等卖点，"
-            "再回到本节——哪些差别来自**专利文本**，哪些只是行业语境。",
-            " · ".join(_clue_link(c) for c in clues[:3]),
+            "对照公开话术时：分清哪些差别来自**专利文本**，哪些只是行业语境。",
+            "线索入口：[[clues/_线索索引|线索文件夹]]"
+            + (" · " + " · ".join(_clue_link(c) for c in clues[:3]) if clues else ""),
         ],
     )
     content = _insert_before_heading(content, r"^##\s*八、", l2_seven)
@@ -832,8 +1050,8 @@ def inject_clue_annotations(content: str, clues: list[dict]) -> str:
     l2_eight = _render_warning(
         "阅读建议·公开线索",
         [
-            f"建议打开 [[clues/_线索索引|线索文件夹]]，先扫产品/新闻话术，再回看权1骨架与特征表。",
-            f"当前高相关示例：{_clue_link(primary)} — {point}",
+            "建议打开 [[clues/_线索索引|线索文件夹]] 扫摘要，再回看权1骨架与特征表。",
+            "详细贴合点见第四节权项旁注、第六节「特征—公开语境」。",
         ],
     )
     content = _insert_before_heading(content, r"^##\s*九、", l2_eight)
@@ -841,27 +1059,69 @@ def inject_clue_annotations(content: str, clues: list[dict]) -> str:
     l2_nine = _render_warning(
         "场景·公开线索",
         [
-            "应用场景的专利内依据见上表；公开线索仅补充「谁在卖类似隔膜/涂覆」的语境。",
+            "应用场景的专利内依据见上表；公开线索仅补充同主题落地/产品语境。",
             " · ".join(_clue_link(c) for c in clues[:3]),
         ],
     )
     content = _insert_before_heading(content, r"^##\s*十、", l2_nine)
 
-    # —— L3：权项点对点 ——
+    # —— L3：权项点对点（优先 Agent anchor_fits；否则按权正文启发式）——
+    claim_bodies = harvest_claim_bodies(content)
     claim_groups: dict[int, list[dict]] = {}
     for c in clues:
+        claim_nums: set[int] = set()
         for num in c.get("related_claims") or []:
             try:
-                claim_groups.setdefault(int(num), []).append(c)
+                claim_nums.add(int(num))
             except (TypeError, ValueError):
                 continue
+        for key, _fit in agent_fits_for(c, "claim"):
+            n = _claim_key_to_num(key)
+            if n:
+                claim_nums.add(n)
+        for num in claim_nums:
+            claim_groups.setdefault(num, []).append(c)
     # 从后往前插，避免偏移
     for num, group in sorted(claim_groups.items(), reverse=True):
+        # 去重同一线索
+        uniq_group: list[dict] = []
+        seen_stem: set[str] = set()
+        for c in group:
+            st = _clue_stem(c)
+            if st in seen_stem:
+                continue
+            seen_stem.add(st)
+            uniq_group.append(c)
+        anchor = claim_bodies.get(num, f"权利要求{num}")
         body = [
-            f"与**权利要求 {num}** 弱匹配的公开语境（非权要证据）：",
+            f"与**权利要求 {num}** 弱匹配的公开语境（非权要证据）；"
+            f"贴合句优先来自 Agent 读页归纳：",
         ]
-        for c in group[:3]:
-            body.append(f"- {_clue_link(c)} — {_clue_highlight(c)}")
+        seen_hl: set[str] = set()
+        for c in uniq_group[:3]:
+            agent_hl = next(
+                (
+                    fit
+                    for key, fit in agent_fits_for(c, "claim")
+                    if _claim_key_to_num(key) == num
+                ),
+                "",
+            )
+            if agent_hl:
+                hl, specific = agent_hl[:52], True
+            else:
+                hl, specific = clue_highlight_for_text(c, anchor, limit=52)
+            if specific and hl:
+                key = re.sub(r"\s+", "", hl)[:20]
+                if key in seen_hl:
+                    body.append(f"- {_clue_link(c)}")
+                else:
+                    seen_hl.add(key)
+                    body.append(f"- {_clue_link(c)} — {hl}")
+            else:
+                body.append(
+                    f"- {_clue_link(c)} — 同主题语境（摘要未点名该权项）"
+                )
         block = _render_warning("权项—公开语境（推测）", body)
         pat = re.compile(
             rf"(>\s*\[!patent-claim\]\s*权利要求\s*{num}\b[\s\S]*?)(?=\n>\s*\[!patent-claim\]|\n##\s|\n\| 特征 \||\Z)",
@@ -880,10 +1140,26 @@ def inject_clue_annotations(content: str, clues: list[dict]) -> str:
             content = _insert_before_heading(content, r"^##\s*五、", overview.strip())
 
     # —— L3：特征公开语境 → 紧挨第六节对照表下方（附图之前）——
-    # 只展示笔记里真实存在的特征行（第四节 F 编号或第六节特征名）；丢弃 sidecar 残留空号。
+    # 优先 Agent anchor_fits；无则启发式。按线索去重呈现。
     catalog = harvest_feature_entries(content)
-    feat_groups: dict[str, dict] = {}  # display_key -> {ent, clues}
+    # stem -> {clue, pairs: [(score, ent, hl, specific)]}
+    clue_buckets: dict[str, dict] = {}
     for c in clues:
+        stem = _clue_stem(c)
+        bucket = clue_buckets.setdefault(stem, {"clue": c, "pairs": []})
+        agent_feat = agent_fits_for(c, "feature")
+        if agent_feat:
+            for key, fit in agent_feat[:6]:
+                ent = resolve_feature_entry(str(key), catalog)
+                if not ent:
+                    # Agent 已点名：即使当前表无完全同名行，仍展示贴合句
+                    ent = {
+                        "id": "",
+                        "label": str(key)[:40],
+                        "text": str(key),
+                    }
+                bucket["pairs"].append((100, ent, fit[:52], True))
+            continue
         keys = list(c.get("related_feature_ids") or [])
         if not keys and c.get("related_features"):
             keys = [str(x) for x in c.get("related_features")[:2]]
@@ -898,34 +1174,60 @@ def inject_clue_annotations(content: str, clues: list[dict]) -> str:
                 ent = resolve_feature_entry(str(key), catalog)
                 if ent:
                     resolved.append(ent)
+        seen_disp: set[str] = set()
         for ent in resolved:
             disp = feature_display_name(ent)
-            slot = feat_groups.setdefault(disp, {"ent": ent, "clues": []})
-            if c not in slot["clues"]:
-                slot["clues"].append(c)
-    if feat_groups:
+            if disp in seen_disp:
+                continue
+            seen_disp.add(disp)
+            sc = feature_clue_affinity(ent, c)
+            hl, specific = clue_highlight_for_feature(c, ent, limit=52)
+            bucket["pairs"].append((sc, ent, hl if specific else "", specific))
+    clue_buckets = {k: v for k, v in clue_buckets.items() if v.get("pairs")}
+    if clue_buckets:
         lines = [
-            "下列为**本笔记特征表**与公开线索的弱匹配（有 F 编号则写 F+名称，否则用第六节特征名）。",
-            "仅供语境对照，不改写表内说明书/附图依据。",
+            "按**公开线索**归纳（每条只出现一次）；贴合句优先来自 Agent 读页归纳，否则启发式抽取。",
+            "仅供语境理解，**不是**说明书/权利要求证据。",
             "",
         ]
-        for disp, slot in list(feat_groups.items())[:8]:
-            group = slot["clues"]
-            bits = "；".join(
-                f"{_clue_link(c, (c.get('title') or '')[:24])}（{_clue_highlight(c, limit=40)}）"
-                for c in group[:2]
+        for stem, bucket in list(clue_buckets.items())[:DEFAULT_MAX_CLUES]:
+            c = bucket["clue"]
+            pairs = sorted(
+                bucket["pairs"], key=lambda x: (-x[0], feature_display_name(x[1]))
             )
-            lines.append(f"- **{disp}** ← {bits}")
+            # 每条线索最多展开 3 条有专属贴合句的特征；其余收进「另涉」
+            specific_rows = [
+                (sc, ent, hl) for sc, ent, hl, sp in pairs if sp and sc >= 2
+            ][:3]
+            specific_names = {feature_display_name(e) for _, e, _ in specific_rows}
+            other = [
+                feature_display_name(ent)
+                for _sc, ent, _hl, _sp in pairs
+                if feature_display_name(ent) not in specific_names
+            ][:6]
+            lines.append(f"**{_clue_link(c, (c.get('title') or '')[:28])}**")
+            if specific_rows:
+                for _sc, ent, hl in specific_rows:
+                    lines.append(f"- **{feature_display_name(ent)}** — {hl}")
+                if other:
+                    lines.append("- 另涉（同主题、摘要未点名）：" + "；".join(other))
+            elif pairs:
+                lines.append(f"- 同主题语境：{_clue_highlight(c, limit=48)}")
+                names = "；".join(
+                    feature_display_name(ent) for _sc, ent, _hl, _sp in pairs[:5]
+                )
+                lines.append(f"- 相关特征：{names}")
+            lines.append("")
+        while lines and lines[-1] == "":
+            lines.pop()
         feat_block = _render_warning("特征—公开语境（推测）", lines)
         content = _insert_after_section6_feature_table(content, feat_block)
 
-    # —— L2 补充：术语节 ——
-    term_hits: list[str] = []
+    # —— L2 补充：术语节（按线索去重 + 术语贴合句）——
     sec5 = re.search(r"^##\s*五、专利内术语表([\s\S]*?)(?=^##\s*六、|\Z)", content, re.M)
     if sec5:
         terms = re.findall(r"\|\s*\[\[(?:[^\]|]+\|)?([^\]]+)\]\]", sec5.group(1))
         if not terms:
-            # 纯文本术语列（无 wiki link）
             terms = [
                 m.group(1).strip()
                 for m in re.finditer(
@@ -935,19 +1237,64 @@ def inject_clue_annotations(content: str, clues: list[dict]) -> str:
                 and not re.match(r"^[-:]+$", m.group(1).strip())
                 and m.group(1).strip() not in ("术语", "本文含义/位置", "备注")
             ]
-        for term in terms[:12]:
-            tokens = _term_match_tokens(term)
-            for c in clues:
-                blob = f"{c.get('title')} {c.get('summary')} {c.get('reason')}"
-                if tokens and any(t in blob for t in tokens):
-                    term_hits.append(f"- **{term}** ← {_clue_link(c)}")
+        term_buckets: dict[str, dict] = {}
+        # 先吃 Agent 术语贴合
+        for c in clues:
+            agent_terms = agent_fits_for(c, "term")
+            if not agent_terms:
+                continue
+            stem = _clue_stem(c)
+            bucket = term_buckets.setdefault(stem, {"clue": c, "rows": []})
+            for key, fit in agent_terms[:6]:
+                # 尽量对齐笔记术语表用词
+                matched = next(
+                    (t for t in terms if t == key or key in t or t in key),
+                    key,
+                )
+                if matched not in terms and key not in terms:
+                    # 仍展示 Agent 点名的术语
+                    matched = key
+                bucket["rows"].append((matched, fit[:44], True))
+        # 无 Agent 术语贴合时，启发式共现
+        if not term_buckets:
+            for term in terms[:12]:
+                tokens = _term_match_tokens(term)
+                if not tokens:
+                    continue
+                for c in clues:
+                    blob = f"{c.get('title')} {c.get('summary')} {c.get('reason')}"
+                    if not any(t in blob for t in tokens):
+                        continue
+                    stem = _clue_stem(c)
+                    bucket = term_buckets.setdefault(stem, {"clue": c, "rows": []})
+                    hl, specific = clue_highlight_for_text(c, term, limit=44)
+                    bucket["rows"].append((term, hl if specific else "", specific))
                     break
-    if term_hits:
-        term_block = _render_warning(
-            "术语·公开语境",
-            ["术语与公开材料共现（推测）："] + term_hits[:6],
-        )
-        content = _insert_before_heading(content, r"^##\s*六、", term_block)
+        if term_buckets:
+            lines = [
+                "按线索归纳术语共现（推测）；贴合句优先来自 Agent 读页归纳。",
+                "",
+            ]
+            for stem, bucket in list(term_buckets.items())[:DEFAULT_MAX_CLUES]:
+                c = bucket["clue"]
+                lines.append(f"**{_clue_link(c, (c.get('title') or '')[:28])}**")
+                specific_rows = [(t, hl) for t, hl, sp in bucket["rows"] if sp][:4]
+                other = [t for t, hl, sp in bucket["rows"] if not sp][:6]
+                for t, hl in specific_rows:
+                    lines.append(f"- **{t}** — {hl}")
+                if other:
+                    if specific_rows:
+                        lines.append("- 另涉：" + "；".join(other))
+                    else:
+                        lines.append(
+                            f"- 同主题语境：{_clue_highlight(c, limit=40)}"
+                        )
+                        lines.append("- 相关术语：" + "；".join(other))
+                lines.append("")
+            while lines and lines[-1] == "":
+                lines.pop()
+            term_block = _render_warning("术语·公开语境", lines)
+            content = _insert_before_heading(content, r"^##\s*六、", term_block)
 
     return content
 
@@ -968,7 +1315,9 @@ def render_annotation_callout(clues: list[dict]) -> str:
         "",
         "> [!warning]- 外部线索（推测）",
         "> 下列公开线索与权项/特征有**弱匹配**，仅供理解语境，**不是**说明书依据。",
+        "> （每条线索一行；详细贴合见权项/特征旁注。）",
     ]
+    seen_hl: set[str] = set()
     for c in matched:
         bits: list[str] = []
         if c.get("related_claims"):
@@ -978,8 +1327,16 @@ def render_annotation_callout(clues: list[dict]) -> str:
             bits.append("特征 " + "、".join(str(x) for x in fids[:4]))
         elif c.get("related_features"):
             bits.append("特征共现：" + "；".join(c["related_features"][:2]))
-        hl = _clue_highlight(c, limit=48)
-        lines.append(f"> - {_clue_link(c)} — {' · '.join(bits) if bits else hl}")
+        hl = _clue_highlight(c, limit=40)
+        key = re.sub(r"\s+", "", hl)[:18]
+        if key and key in seen_hl:
+            hl = ""
+        elif key:
+            seen_hl.add(key)
+        tail = " · ".join(bits) if bits else (hl or "同主题语境")
+        if bits and hl:
+            tail = f"{' · '.join(bits)} — {hl}"
+        lines.append(f"> - {_clue_link(c)} — {tail}")
     lines.append("")
     return "\n".join(lines)
 
@@ -1096,14 +1453,23 @@ def render_clues_index(clues: list[dict], *, pub: str, note_link: str = "") -> s
             "| --- | --- | --- | --- |",
         ]
     )
+    # 索引在 clues/ 子目录：链到同目录笔记用短路径；权项锚点在上级专利目录
+    claim_base = f"{pub}_权项锚点"
     for c in clues:
         fname = c.get("filename") or ""
         stem = Path(fname).stem if fname else c.get("clue_id") or "线索"
-        title = c.get("title") or stem
+        title = (c.get("title") or stem)[:40]
         claims = c.get("related_claims") or []
-        rel = "、".join(f"权{n}" for n in claims) if claims else "—"
+        if claims:
+            rel = "、".join(
+                _table_wikilink(f"{claim_base}#^claim-{n}", f"权{n}") for n in claims
+            )
+        else:
+            rel = "—"
+        # 索引页本身在 clues/ 下，链同目录笔记勿加 clues/ 前缀
+        clue_cell = _table_wikilink(stem, title)
         lines.append(
-            f"| [[clues/{stem}|{title[:40]}]] | {c.get('confidence') or '中'} "
+            f"| {clue_cell} | {c.get('confidence') or '中'} "
             f"| {c.get('status') or '—'} | {rel} |"
         )
     lines.append("")
@@ -1197,11 +1563,18 @@ def materialize_clues(
             "related_claims",
             "related_features",
             "related_feature_ids",
+            "anchor_fits",
+            "fits",
             "fetch_note",
             "fetched_at",
         ):
             if c.get(key) not in (None, "", []):
                 item[key] = c[key]
+        # 统一规范 Agent 贴合字段
+        fits = normalize_anchor_fits(item)
+        if fits:
+            item["anchor_fits"] = fits
+            item.pop("fits", None)
         fname = clue_filename(item.get("title") or "线索", i)
         item["filename"] = fname
 
@@ -1248,11 +1621,37 @@ def materialize_clues(
             claim_summaries=claim_summaries,
             feature_entries=entries,
         )
+        # 权项：保留 Agent 已写；缺则启发式补
         if not item.get("related_claims"):
             item["related_claims"] = match.get("related_claims") or []
-        # 特征锚定依赖当前笔记表结构：始终按正文重算，避免 sidecar 残留空号 F1–F6
-        item["related_features"] = match.get("related_features") or []
-        item["related_feature_ids"] = match.get("related_feature_ids") or []
+        for key, _fit in agent_fits_for(item, "claim"):
+            n = _claim_key_to_num(key)
+            if n and n not in (item.get("related_claims") or []):
+                item.setdefault("related_claims", []).append(n)
+        # 特征：优先 Agent anchor_fits / related_*，再与笔记表对齐；禁止空号
+        agent_feat_keys = [k for k, _ in agent_fits_for(item, "feature")]
+        if not agent_feat_keys:
+            agent_feat_keys = [
+                str(x)
+                for x in (item.get("related_feature_ids") or item.get("related_features") or [])
+                if str(x).strip()
+            ]
+        resolved_ids: list[str] = []
+        if agent_feat_keys and entries:
+            for key in agent_feat_keys:
+                ent = resolve_feature_entry(str(key), entries)
+                if not ent:
+                    continue
+                prefer = str(ent.get("id") or ent.get("label") or "")[:40]
+                if prefer and prefer not in resolved_ids:
+                    resolved_ids.append(prefer)
+        if resolved_ids:
+            item["related_feature_ids"] = resolved_ids[:6]
+            item["related_features"] = resolved_ids[:4]
+        else:
+            # 无可用 Agent 锚定：按正文弱匹配重算
+            item["related_features"] = match.get("related_features") or []
+            item["related_feature_ids"] = match.get("related_feature_ids") or []
 
         body = render_clue_note(item, pub=pub, note_link=note_link)
         (clues_dir / fname).write_text(body, encoding="utf-8")

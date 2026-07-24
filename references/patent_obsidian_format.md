@@ -4,6 +4,8 @@
 
 - 库内默认：`Research/Patents/<领域>/<公开号>/<公开号>_解读_<YYYYMMDD>.md`
 - 同目录：`images/`（附图）、`<公开号>_图谱.canvas`（专利族图谱）
+- 同目录：`<公开号>_说明书段落.md`、`<公开号>_权项锚点.md`（悬停预览旁路；不占解读主文版面；二者与旁路 JSON 不进关系图）
+- 同目录：`source/<公开号>.pdf`（官方原文；入库**默认拷贝**，可用 `--no-copy-source-pdf` 关闭）
 - 库级：`Research/Patents/patents.base`（Bases 仪表盘）、`.obsidian/snippets/patent-reader.css`
 - 领域路由：见 `references/patent_domain_rules.yaml`
 
@@ -57,6 +59,8 @@ CSS 片段 `patent-reader` 由解读**入库时自动**复制并启用。
 | `└─` | 3 | … |
 
 - `◆` = 独立权；`├─`/`└─`/`│` = 从属层级  
+- **父子结构**：抽取后须 **Agent 校对** `claim_tree.json`（`review.by=agent`），再跑 `validate_claim_tree.py --write --require-review`；多引用（「权1或2」）由 Agent 选定单一 `parent`  
+- **「本项新增」**：Agent 主路径写 `claim_deltas.json`（或 `note_plan.claim_deltas` / node.`delta`）；入库优先采用；缺省权号才启发式从原文截句  
 - 独立权细节只在**第四节**展开  
 - mermaid 默认不进正文（可生成 `claim_mermaid.mmd` 备用）
 - Canvas「权项」卡与第三节同构（树形表，短句）；入库时旁路保存 `claim_tree.json`
@@ -78,6 +82,17 @@ CSS 片段 `patent-reader` 由解读**入库时自动**复制并启用。
 
 写作要求写在 prompt / 模板正文的「写作提示」里，**不要**写进交付笔记标题。入库脚本 `sanitize_user_facing_titles` 会幂等清理常见旧标题。
 
+## 说明书段落引用与悬停预览
+
+- **写法**：`说明书 0002` 或 `说明书 0002–0004`（禁止裸 `[0002]`）
+- **入库产物**：同目录 `{公开号}_说明书段落.md`；单段 `### 0002` + 块 `^p0002`；区间另有合并节 + `^r0002-0004`（**默认仅含本解读引用**）
+- **改写结果（单链）**：`[[…#^p0002|说明书 0002]]` / `[[…#^r0002-0004|说明书 0002–0004]]`
+- **悬停预览**：开启核心插件 **页面预览（Page preview）** 后，**按住 Ctrl** 再悬停链接即可浮出原文（详见 `{公开号}_说明书段落` 文首「使用说明」）
+- 导航只链「说明书段落」（不加括号说明）；抽取阶段另写 RUN 内 `description_paragraphs.json`
+- **权 N**：`[[{公开号}_权项锚点#^claim-N|权N]]`（旁路笔记，文首含页面预览说明）
+- **图 N**：`[[#图N|图N]]`（解读正文附图区 `### 图N` + 嵌入）
+- **表格内链接**：别名分隔符须转义为 `\|`（如 `[[…#^claim-2\|权2]]`），否则会拆列露路径
+
 ## 第九节：应用场景
 
 整节置于：
@@ -87,7 +102,7 @@ CSS 片段 `patent-reader` 由解读**入库时自动**复制并启用。
 > …
 ```
 
-**禁止 URL**。
+**禁止 URL**。段落依据用 `说明书 0002` / `实施例 …` / `背景 …`。
 
 ## 第十节 B：推测线索
 
@@ -101,9 +116,9 @@ CSS 片段 `patent-reader` 由解读**入库时自动**复制并启用。
 | 层 | 位置 |
 | --- | --- |
 | L1 | 导航「公开线索（N 条）」+ 文首 tip 入口 |
-| L2 | 一/二/七/八/九 + 术语：折叠「公开案例/对照」旁注 |
-| L3 | 第四节按权旁注；**第六节对照表正下方**挂「特征—公开语境」，条目必须对应笔记内特征行（F+名称或本表特征名；禁止空号 F1–F6） |
-| L4 | 附录 B + `clues/` + Canvas「公开线索」分组 |
+| L2 | 一/二/七/八/九氛围旁注：各节角度不同，线索摘要**去重分列**；术语旁注优先用 Agent `anchor_fits` |
+| L3 | 第四节权项 / 第六节特征旁注：贴合句**优先** `public_clues.json` → `anchor_fits`（Agent 读页后写入）；缺省才启发式；特征块按线索去重；禁止空号 F1–F6 |
+| L4 | 附录 B + `clues/` + Canvas「公开线索」分组（总表，不重复展开贴合句） |
 
 ```markdown
 > [!warning]- 公开检索线索
@@ -113,7 +128,7 @@ CSS 片段 `patent-reader` 由解读**入库时自动**复制并启用。
 
 ## 附图（P1/P2）
 
-`extract_patent_figures.py`（caption+bbox，参考 DeepPaperNote 视觉引擎）：
+`extract_patent_figures.py`（caption+bbox 附图裁切）：
 
 - `decision=insert` + 质量 usable → 笔记嵌入 `![[images/…]]`
 - 扫描件（无可靠图注）：入库启用**扫描件整页预览**（`--scan-pages` 或无 insert 时自动），第六节追加：
@@ -167,4 +182,4 @@ related_pubs:
 
 ## 交付后插件引导
 
-见 `prompts/obsidian_plugin_guide.md`、`references/obsidian_recommended_plugins.md`。
+见 `prompts/obsidian_plugin_guide.md`、`docs/obsidian-setup-guide.md`。

@@ -86,7 +86,7 @@ def test_lint_heading_not_bare_feature() -> None:
         "## 二、连贯叙事\n\n## 三、权利要求树\n\n"
         "## 四、独立权利要求精读\n\n| 特征 | 说明 |\n|---|---|\n| a | b |\n\n"
         "## 五、专利内术语表\n\n## 七、和现有技术的差别\n\n"
-        "## 八、给你的阅读建议\n\n## 九、技术应用场景\n\ndesc_001 背景\n\n"
+        "## 八、阅读建议\n\n## 九、技术应用场景\n\ndesc_001 背景\n\n"
         "## 十、附录\n\nIPC 行业坐标\n\n### B. 公开\n\n未发现可靠对应，防御性。\n\n"
         "## 十一、免责声明\n\n"
         "不构成法律意见。专利保护范围以官方法律文本为准。"
@@ -291,7 +291,7 @@ def test_inject_clue_annotations_l1_l4() -> None:
 
 差别。
 
-## 八、给你的阅读建议
+## 八、阅读建议
 
 1. 建议。
 
@@ -350,6 +350,295 @@ old
     assert out2.count("特征—公开语境（推测）") == 1
 
 
+def test_agent_anchor_fits_preferred() -> None:
+    """有 anchor_fits 时，旁注必须用 Agent 贴合句，而非启发式首句。"""
+    from clue_vault import inject_clue_annotations
+
+    note = """# t
+
+## Obsidian 导航
+
+- [[x|图谱]]
+
+## 一、一句话
+
+a
+
+## 二、连贯叙事
+
+b
+
+## 三、权利要求树
+
+c
+
+## 四、独立权利要求精读
+
+> [!patent-claim] 权利要求 1
+
+> 含陶瓷与纤维素涂覆层。
+
+## 五、专利内术语表
+
+| 术语 | 本文含义/位置 | 备注 |
+|------|---------------|------|
+| 纤维素 | 涂层 | — |
+
+## 六、特征—说明书—附图对照
+
+| 特征 | 说明书位置 | 附图 |
+|------|------------|------|
+| 涂覆层含陶瓷和纤维素 | 权1 | 图1 |
+| 纤维素分子量 5万-250万 | 权2 | — |
+
+## 七、和现有技术的差别
+
+d
+
+## 八、阅读建议
+
+1. x
+
+## 九、技术应用场景
+
+y
+
+## 十、附录
+
+### A. IPC
+
+x
+
+## 十一、免责声明
+
+z
+"""
+    clues = [
+        {
+            "title": "公开页A",
+            "filename": "01-公开页A.md",
+            "summary": "页面要点：\n- 无关的第一句卖点会被启发式误用\n- 纸基涂布纤维素溶液",
+            "reason": "同主题",
+            "related_claims": [1],
+            "related_feature_ids": ["涂覆层含陶瓷和纤维素", "纤维素分子量 5万-250万"],
+            "anchor_fits": [
+                {
+                    "kind": "feature",
+                    "key": "涂覆层含陶瓷和纤维素",
+                    "fit": "AGENT贴合：纸基涂布纤维素溶液",
+                },
+                {
+                    "kind": "claim",
+                    "key": "1",
+                    "fit": "AGENT权贴合：同主题涂覆隔膜制备",
+                },
+                {
+                    "kind": "term",
+                    "key": "纤维素",
+                    "fit": "AGENT术语：文中举例棉浆溶解",
+                },
+            ],
+            "confidence": "中",
+            "status": "agent_fetched",
+        }
+    ]
+    out = inject_clue_annotations(note, clues)
+    feat = out.split("特征—公开语境（推测）")[1].split("## 七、")[0]
+    assert "AGENT贴合：纸基涂布纤维素溶液" in feat
+    assert "无关的第一句卖点" not in feat
+    claim = out.split("权项—公开语境（推测）")[1].split("## 五、")[0]
+    assert "AGENT权贴合：同主题涂覆隔膜制备" in claim
+    term = out.split("术语·公开语境")[1].split("## 六、")[0]
+    assert "AGENT术语：文中举例棉浆溶解" in term
+
+
+def test_claim_and_term_callouts_distill() -> None:
+    """权项/术语 warning：按锚点抽贴合句，且 L2 不再硬编码「湿法」话术。"""
+    from clue_vault import inject_clue_annotations
+
+    note = """# t
+
+## Obsidian 导航
+
+- [[x|图谱]]
+
+## 一、一句话
+
+a
+
+## 二、连贯叙事
+
+b
+
+## 三、权利要求树
+
+c
+
+## 四、独立权利要求精读
+
+> [!patent-claim] 权利要求 1
+
+> 【CN·权利要求1】含陶瓷涂层与基膜，采用碱尿素溶解纤维素后涂布。
+
+## 五、专利内术语表
+
+| 术语 | 本文含义/位置 | 备注 |
+|------|---------------|------|
+| [[Research/术语/陶瓷涂层|陶瓷涂层]] | 涂层 | — |
+| 纤维素 | 涂层组分 | — |
+
+## 六、特征—说明书—附图对照
+
+| 特征 | 说明书位置 | 附图 |
+|------|------------|------|
+| 陶瓷涂层 | 权1 | 图1 |
+
+## 七、和现有技术的差别
+
+d
+
+## 八、阅读建议
+
+1. x
+
+## 九、技术应用场景
+
+y
+
+## 十、附录
+
+### A. IPC
+
+x
+
+## 十一、免责声明
+
+z
+"""
+    clues = [
+        {
+            "title": "纤维素涂布与陶瓷隔膜公开页",
+            "filename": "01-纤维素陶瓷.md",
+            "summary": (
+                "页面要点：\n"
+                "- 提出在纸基上涂布纤维素溶液\n"
+                "- 采用碱尿素体系溶解非衍生化纤维素后涂布\n"
+                "- 陶瓷涂层用于提升热稳定性"
+            ),
+            "reason": "同主题公开",
+            "related_claims": [1],
+            "related_feature_ids": ["陶瓷涂层"],
+            "confidence": "中",
+            "status": "agent_fetched",
+        }
+    ]
+    out = inject_clue_annotations(note, clues)
+    assert "湿法工艺" not in out
+    claim_zone = out.split("权项—公开语境（推测）")[1].split("## 五、")[0]
+    assert "碱尿素" in claim_zone or "纤维素" in claim_zone or "陶瓷" in claim_zone
+    assert "同主题语境（摘要未点名该权项）" not in claim_zone or "—" in claim_zone
+    term_zone = out.split("术语·公开语境")[1].split("## 六、")[0]
+    assert "陶瓷涂层" in term_zone or "纤维素" in term_zone
+
+
+def test_feature_callout_dedupes_clue_and_distills() -> None:
+    """多特征命中同一线索时：线索只出现一次，并为特征抽不同贴合句。"""
+    from clue_vault import inject_clue_annotations
+
+    note = """# t
+
+## Obsidian 导航
+
+- [[x|图谱]]
+
+## 一、一句话
+
+a
+
+## 二、连贯叙事
+
+b
+
+## 三、权利要求树
+
+c
+
+## 四、独立权利要求精读
+
+> [!patent-claim] 权利要求 1
+
+> 隔膜。
+
+## 五、专利内术语表
+
+| 术语 | 本文含义/位置 | 备注 |
+|------|---------------|------|
+| 纤维素 | 涂层 | — |
+
+## 六、特征—说明书—附图对照
+
+| 特征 | 说明书位置 | 附图 |
+|------|------------|------|
+| 基膜+至少一面涂覆层 | 权1 | 图1 |
+| 涂覆层含陶瓷和纤维素 | 权1 | 图1 |
+| 纤维素分子量 5万-250万 | 权2 | — |
+| 非衍生化碱尿素溶解 | 权3 | 图2 |
+
+## 七、和现有技术的差别
+
+d
+
+## 八、阅读建议
+
+1. x
+
+## 九、技术应用场景
+
+y
+
+## 十、附录
+
+### A. IPC
+
+x
+
+## 十一、免责声明
+
+z
+"""
+    clues = [
+        {
+            "title": "一种纤维素涂布锂离子电池隔膜的制备方法（碱尿素溶）",
+            "filename": "01-纤维素涂布.md",
+            "summary": (
+                "页面要点：\n"
+                "- 该公开文本针对聚烯烃隔膜热稳定性差，提出在纸基上涂布纤维素溶液\n"
+                "- 采用碱尿素体系溶解非衍生化纤维素后涂布"
+            ),
+            "reason": "同主题纤维素涂布隔膜公开文本",
+            "related_feature_ids": [
+                "基膜+至少一面涂覆层",
+                "涂覆层含陶瓷和纤维素",
+                "纤维素分子量 5万-250万",
+                "非衍生化碱尿素溶解",
+            ],
+            "confidence": "中",
+            "status": "agent_fetched",
+        }
+    ]
+    out = inject_clue_annotations(note, clues)
+    zone = out.split("特征—公开语境（推测）")[1].split("## 七、")[0]
+    # 线索标题在特征块内只出现一次（按线索归纳）
+    assert zone.count("纤维素涂布锂离子电池隔膜") == 1
+    assert "涂覆层含陶瓷和纤维素" in zone
+    assert "非衍生化碱尿素溶解" in zone
+    # 应有针对特征的贴合句，而非每行重复整段同一摘要
+    assert "碱尿素" in zone
+    assert "涂布纤维素" in zone or "纸基" in zone
+    # 数值特征无摘要锚点时收进另涉，避免刷屏
+    assert "另涉" in zone or "分子量" in zone
+
+
 def test_feature_callout_drops_orphan_fids() -> None:
     """第六节只有特征名、无 F 编号时：丢弃 sidecar 空号 F1–F6，改挂表内名称。"""
     from clue_vault import inject_clue_annotations, match_clue_to_note
@@ -396,7 +685,7 @@ c
 
 d
 
-## 八、给你的阅读建议
+## 八、阅读建议
 
 1. x
 
@@ -560,6 +849,10 @@ def test_bootstrap_creates_appearance() -> None:
         )
         assert graph.get("colorGroups")
         assert any("file:_解读_" in (g.get("query") or "") for g in graph["colorGroups"])
+        search = graph.get("search") or ""
+        assert "-file:.json" in search
+        assert "-file:_权项锚点" in search
+        assert "-file:_说明书段落" in search
         assert any("graph_colors:" in a for a in actions)
 
 
@@ -646,6 +939,115 @@ def test_render_claim_tree_markdown() -> None:
     assert "```mermaid" not in md
     md2 = render_claim_tree_markdown(tree, pub="CN1", include_mermaid=True)
     assert "```mermaid" in md2
+
+
+def test_claim_tree_multi_parent_and_validate() -> None:
+    """多引用父号解析 + Agent 校对校验。"""
+    from common import (
+        normalize_claim_tree,
+        parent_claim_numbers,
+        validate_claim_tree,
+    )
+
+    assert parent_claim_numbers("如权利要求1或2所述的隔膜，其特征在于：…") == [1, 2]
+    assert parent_claim_numbers("according to claims 3 or 4, wherein")[:2] == [3, 4]
+
+    tree = {
+        "roots": [1],
+        "nodes": [
+            {
+                "number": 1,
+                "is_independent": True,
+                "parent": None,
+                "text_preview": "一种隔膜",
+            },
+            {
+                "number": 2,
+                "is_independent": False,
+                "parent": 1,
+                "text_preview": "如权利要求1",
+            },
+            {
+                "number": 5,
+                "is_independent": False,
+                "parent": 2,
+                "parent_candidates": [1, 2],
+                "text_preview": "如权利要求1或2所述",
+            },
+        ],
+        "review": {
+            "by": "agent",
+            "status": "reviewed",
+            "notes": "权5挂独立权1",
+            "corrections": [{"claim": 5, "to_parent": 1}],
+        },
+    }
+    # Agent 纠正父号
+    tree["nodes"][2]["parent"] = 1
+    result = validate_claim_tree(tree)
+    assert result["passed"]
+    assert result["tree"]["nodes"][2]["parent"] == 1
+    assert any("multi_parent_candidates" in w for w in result["warnings"])
+
+    bad = normalize_claim_tree(
+        {
+            "nodes": [
+                {"number": 1, "is_independent": True, "parent": 9},
+                {"number": 2, "is_independent": False, "parent": 99},
+            ]
+        }
+    )
+    assert bad["nodes"][0]["parent"] is None
+    assert bad["nodes"][1]["parent"] == 1  # 悬空父号回退到独立权1
+    unchecked = validate_claim_tree({"nodes": bad["nodes"]})
+    assert "not_agent_reviewed" in unchecked["warnings"]
+
+
+def test_claim_deltas_agent_preferred() -> None:
+    """Agent claim_deltas 覆盖启发式截句。"""
+    from obsidian import (
+        load_claim_deltas,
+        merge_claim_summaries,
+        render_claim_tree_markdown,
+    )
+
+    tree = {
+        "roots": [1],
+        "nodes": [
+            {
+                "number": 1,
+                "is_independent": True,
+                "parent": None,
+                "text_preview": "一种隔膜，其特征在于：包括基膜和涂覆层。",
+            },
+            {
+                "number": 2,
+                "is_independent": False,
+                "parent": 1,
+                "text_preview": "如权利要求1所述的隔膜，其特征在于：涂覆层含陶瓷和纤维素。",
+            },
+        ],
+    }
+    agent = load_claim_deltas(
+        {
+            "source": "agent",
+            "deltas": [
+                {"claim": 1, "delta": "基膜+涂覆层骨架"},
+                {"claim": 2, "delta": "涂层同时含陶瓷与纤维素"},
+            ],
+        }
+    )
+    assert agent[2] == "涂层同时含陶瓷与纤维素"
+    # 笔记旧句不应压过 Agent
+    summaries = merge_claim_summaries({2: "旧启发式句子"}, agent)
+    assert summaries[2] == "涂层同时含陶瓷与纤维素"
+    md = render_claim_tree_markdown(tree, pub="CN1", summaries=summaries)
+    assert "涂层同时含陶瓷与纤维素" in md
+    assert "基膜+涂覆层骨架" in md
+    # 缺 Agent 的权号仍可启发式
+    md_fb = render_claim_tree_markdown(tree, pub="CN1", summaries={1: "骨架"})
+    assert "骨架" in md_fb
+    assert "陶瓷" in md_fb or "纤维素" in md_fb
 
 
 def test_spurious_patent_note_detect() -> None:
@@ -783,6 +1185,8 @@ def main() -> int:
     test_glossary_backlink_backslash_dedupe()
     test_spurious_patent_note_detect()
     test_render_claim_tree_markdown()
+    test_claim_tree_multi_parent_and_validate()
+    test_claim_deltas_agent_preferred()
     print("OK debt_and_enhancement smoke")
     return 0
 

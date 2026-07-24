@@ -28,7 +28,9 @@ try:
         extract_assignees,
         extract_ipc_codes,
         guess_independent,
+        normalize_claim_tree,
         parent_claim_number,
+        parent_claim_numbers,
         slugify_pub,
     )
 except ImportError:
@@ -36,7 +38,9 @@ except ImportError:
         extract_assignees,
         extract_ipc_codes,
         guess_independent,
+        normalize_claim_tree,
         parent_claim_number,
+        parent_claim_numbers,
         slugify_pub,
     )
 
@@ -93,12 +97,14 @@ def split_claims_block(text: str) -> list[dict]:
         body = part[m2.end() :].strip()
         if len(body) < 4:
             continue
+        cands = parent_claim_numbers(body)
         claims.append(
             {
                 "number": num,
                 "text": body,
                 "is_independent": guess_independent(f"{num}. {body}"),
-                "parent": parent_claim_number(body),
+                "parent": cands[0] if cands else parent_claim_number(body),
+                "parent_candidates": cands,
             }
         )
     claims.sort(key=lambda c: c["number"])
@@ -182,24 +188,26 @@ def build_claim_tree(claims: list[dict]) -> dict:
     nodes = []
     for c in claims:
         parent = c.get("parent")
+        cands = list(c.get("parent_candidates") or [])
         if c["is_independent"]:
             parent = None
+            cands = []
         elif parent is None:
             # 从属但未解析到父号：挂到前一条
             parent = next(
                 (p["number"] for p in reversed(claims) if p["number"] < c["number"]),
                 None,
             )
-        nodes.append(
-            {
-                "number": c["number"],
-                "is_independent": c["is_independent"],
-                "parent": parent,
-                "text_preview": c["text"][:200],
-            }
-        )
-    roots = [n for n in nodes if n["is_independent"]]
-    return {"roots": [r["number"] for r in roots], "nodes": nodes}
+        node = {
+            "number": c["number"],
+            "is_independent": c["is_independent"],
+            "parent": parent,
+            "text_preview": c["text"][:200],
+        }
+        if cands:
+            node["parent_candidates"] = cands
+        nodes.append(node)
+    return normalize_claim_tree({"roots": [], "nodes": nodes})
 
 
 def sections_from_text(
@@ -291,6 +299,21 @@ def main(argv: list[str] | None = None) -> int:
     embodiments = extract_embodiments(text) if not args.abstract_only else []
     background_snippets = extract_background_snippets(text) if not args.abstract_only else []
 
+    try:
+        from desc_paragraphs import (
+            split_cn_description_paragraphs,
+            write_description_paragraphs_json,
+        )
+    except ImportError:
+        from tools.patent_reader.desc_paragraphs import (
+            split_cn_description_paragraphs,
+            write_description_paragraphs_json,
+        )
+
+    description_paragraphs = (
+        {} if args.abstract_only else split_cn_description_paragraphs(text)
+    )
+
     has_claims_heading = bool(
         re.search(r"(权利要求书|权\s*利\s*要\s*求|CLAIMS?)", text, re.I)
     )
@@ -315,6 +338,7 @@ def main(argv: list[str] | None = None) -> int:
         "assignees": assignees,
         "ipc_codes": ipc_codes,
         "embodiment_count": len(embodiments),
+        "description_paragraph_count": len(description_paragraphs),
     }
 
     jsonl_path = out_dir / "raw_sections.jsonl"
@@ -354,11 +378,21 @@ def main(argv: list[str] | None = None) -> int:
         json.dumps(bundle, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
+    para_path = None
+    if description_paragraphs:
+        para_path = write_description_paragraphs_json(
+            out_dir / "description_paragraphs.json",
+            description_paragraphs,
+            pub=pub,
+        )
+
     print(f"OK claims={len(claims)} sections={len(sections)} scope={manifest['evidence_scope']}")
     print(f"MANIFEST: {manifest_path}")
     print(f"BUNDLE: {bundle_path}")
     print(f"CLAIM_TREE: {tree_path}")
     print(f"SECTIONS: {jsonl_path}")
+    if para_path:
+        print(f"DESC_PARAS: {para_path} ({len(description_paragraphs)})")
     return 0
 
 

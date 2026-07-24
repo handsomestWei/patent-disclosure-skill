@@ -17,7 +17,7 @@
 
 ### 2. 可选社区插件（须在 App 内安装，技能无法代下）
 
-详见 **`references/obsidian_recommended_plugins.md`** / **`docs/obsidian-setup-guide.md`**：
+详见 **`docs/obsidian-setup-guide.md`**（安装步骤与插件表）：
 
 | 插件 | 安装 | 作用 |
 |------|------|------|

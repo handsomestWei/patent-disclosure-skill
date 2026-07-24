@@ -11,7 +11,7 @@
 
 ## 如何使用 `example_patent_reader`（阅读模式）
 
-按 [example_patent_reader/README.md](example_patent_reader/README.md) 下载镜像 PDF 到 `source/` 后，再以本地路径触发解读；另备 `CN105552277B` 可用于关联测试。
+按 [example_patent_reader/README.md](example_patent_reader/README.md) 下载镜像 PDF 到 `source/` 后，再以本地路径触发解读；主示例 `CN119961390A`，另备 `CN119961396A` 可用于关联 / 同域对照测试。
 
 ## 如何使用 `example_batch_job_scheduler` 跑出效果
 

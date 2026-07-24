@@ -107,6 +107,6 @@ $env:PATENT_READER_GLOSSARY_DIR = "Research/术语"
 pip install -r tools/patent_reader/requirements.txt   # PDF：pymupdf
 ```
 
-**首次使用**：解读**入库时会自动**初始化库（CSS、Bases、索引、关系图配色）。用户只需安装 Obsidian、配置库路径，并（可选）在社区插件市场安装 Dataview 等——步骤见 **`docs/obsidian-setup-guide.md`**；插件清单见 **`references/obsidian_recommended_plugins.md`**。交付后 Agent 按 **`prompts/obsidian_plugin_guide.md`** 引导可选插件。
+**首次使用**：解读**入库时会自动**初始化库（CSS、Bases、索引、关系图配色）。用户只需安装 Obsidian、配置库路径，并（可选）在社区插件市场安装 Dataview 等——步骤与插件清单见 **`docs/obsidian-setup-guide.md`**。交付后 Agent 按 **`prompts/obsidian_plugin_guide.md`** 引导可选插件。
 
 工具链见 **`tools/patent_reader/README.md`**。

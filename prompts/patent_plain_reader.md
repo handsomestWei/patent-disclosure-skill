@@ -60,9 +60,23 @@ python3 ${CLAUDE_SKILL_DIR}/tools/patent_reader/check_obsidian_env.py --set "库
 
 ### 第 1 步：取证与结构化
 
+**仅有公开号、无本地全文/PDF 时**（**禁止**每次现写下载脚本）：先跑固化入口，再 extract：
+
+```bash
+python3 ${CLAUDE_SKILL_DIR}/tools/patent_reader/fetch_patent_pdf.py \
+  --pub <公开号> -o tmp/patent_reader/${RUN}
+# → tmp/patent_reader/${RUN}/source/<公开号>.pdf
+# 源优先级与备选见 references/patent_pdf_sources.yaml
+# 排障可加 --save-html；已有直链可 --url …
+```
+
+失败时：用 `cnipa_epub_search.py` **核验**公开号/摘要（通常无全文 PDF）→ 请用户自备 PDF，或稍后重试 Google CDN。**勿**臆造 PDF URL。
+
+用户已提供 PDF/全文路径时：**跳过** `fetch_patent_pdf`，直接 extract。
+
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/tools/patent_reader/extract_patent_text.py \
-  -i <全文> -o tmp/patent_reader/${RUN} --pub-number <若有>
+  -i <全文或 ${RUN}/source/<公开号>.pdf> -o tmp/patent_reader/${RUN} --pub-number <若有>
 ```
 
 **PDF 附图（有 PDF 时执行；caption+bbox + 质量门）**：
@@ -88,7 +102,83 @@ python3 ${CLAUDE_SKILL_DIR}/tools/patent_reader/build_claim_mermaid.py \
   -o tmp/patent_reader/${RUN}/claim_mermaid.mmd
 ```
 
-- 第三节优先交给入库脚本生成**单一树形表**（结构 | 权 | 本项新增）。勿再「mermaid + 表」双份主展示；`claim_mermaid.mmd` 仅作可选附件。
+- 第三节**树形结构**（◆/├─/└─）由入库脚本按**已校对**的 `claim_tree.json` 渲染；**「本项新增」列优先用你写的 `claim_deltas.json`**（见 1.6），勿再「mermaid + 表」双份主展示；`claim_mermaid.mmd` 仅作可选附件。
+
+### 第 1.55 步：校对 `claim_tree.json`（Agent 主路径 · 父号/独立权）
+
+抽取脚本只会用正则猜独立权与父号，**遇「如权利要求1或2所述」「权1至3」等极易错**。你必须在写 `claim_deltas` / 第三节前完成校对：
+
+1. 打开 `claim_tree.json`，对照权要原文（`raw_sections.jsonl` / PDF / 全文）。
+2. 逐项核对并改写节点字段：
+   - `is_independent`：是否独立权（真/假）
+   - `parent`：从属权的**直接**父号（单值）；独立权必须为 `null`
+   - 若节点已有 `parent_candidates`（多引用列表）：从中择一写入 `parent`，并在 `review.notes` 说明选型理由
+3. 多引用规则（硬性）：
+   - 「权 A 或 B」→ 选**依赖链上更合理的直接限定对象**（通常选独立权，或原文主述的那一项）；**不要**留多个 parent
+   - 「权 A 至 C」→ 一般挂到区间内被进一步限定的那一项，拿不准时挂**最小编号且已存在的独立权/父权**
+4. 回写同一文件，并增加：
+
+```json
+{
+  "roots": [1],
+  "nodes": [
+    {
+      "number": 1,
+      "is_independent": true,
+      "parent": null,
+      "text_preview": "…"
+    },
+    {
+      "number": 5,
+      "is_independent": false,
+      "parent": 1,
+      "parent_candidates": [1, 2],
+      "text_preview": "如权利要求1或2所述的…"
+    }
+  ],
+  "review": {
+    "by": "agent",
+    "status": "reviewed",
+    "notes": "权5「1或2」挂到独立权1；权12 父号由4改为6",
+    "corrections": [
+      {"claim": 5, "to_parent": 1, "reason": "或引多项，挂独立权1"}
+    ]
+  }
+}
+```
+
+5. **再跑校验**（有 issues 必须修到通过；`multi_parent_candidates` 为警告，校对后可保留 candidates）：
+
+```bash
+python3 ${CLAUDE_SKILL_DIR}/tools/patent_reader/validate_claim_tree.py \
+  -i tmp/patent_reader/${RUN}/claim_tree.json \
+  --write \
+  --require-review
+```
+
+- `--write`：规范化 roots / 悬空父号后再写回。
+- 未写 `review.by=agent|human` 时 `--require-review` 会失败——用于防止跳过校对。
+
+### 第 1.6 步：`claim_deltas.json`（Agent 主路径 · 本项新增）
+
+在**已校对**的 `claim_tree.json` 上，为每一项权利要求写一句大白话「相对父权/独立权多了什么」（独立权写骨架要点）。**禁止**照抄「如权利要求…所述」「其特征在于」套话。
+
+写入 `tmp/patent_reader/${RUN}/claim_deltas.json`：
+
+```json
+{
+  "source": "agent",
+  "deltas": [
+    {"claim": 1, "delta": "基膜+至少一面涂覆层，涂层含陶瓷与纤维素"},
+    {"claim": 2, "delta": "限定纤维素分子量 5万～250万"},
+    {"claim": 3, "delta": "非衍生化纤维素经碱尿素溶解后涂布"}
+  ]
+}
+```
+
+- 每句建议 12～40 字；从属权只写**增量**，不要重复父权已有内容。
+- 也可写在 `note_plan.json` 的 `claim_deltas` 字段（同结构）；或写入 `claim_tree.json` 各 node 的 `delta` 字段。
+- 入库时**优先**用本文件；缺省权号才用脚本启发式从 `text_preview` 截句（效果较差）。
 
 ### 第 2 步：公开检索 → 充实 `public_clues.json`（Agent 主路径）
 
@@ -118,7 +208,24 @@ python3 ${CLAUDE_SKILL_DIR}/tools/patent_reader/validate_public_clues.py \
     "summary": "200～800 字可读摘要，只写页面上能核验的内容",
     "status": "agent_fetched",
     "related_claims": [1, 6],
-    "related_features": ["水性PVDF"],
+    "related_features": ["涂覆层含陶瓷和纤维素"],
+    "anchor_fits": [
+      {
+        "kind": "feature",
+        "key": "涂覆层含陶瓷和纤维素",
+        "fit": "页面写在纸基上涂布纤维素溶液（未出现本案数值区间）"
+      },
+      {
+        "kind": "claim",
+        "key": "1",
+        "fit": "公开制备流程与权1「涂覆隔膜」同主题，但基材表述为纸基"
+      },
+      {
+        "kind": "term",
+        "key": "纤维素",
+        "fit": "文中举例棉浆溶解后用于隔膜涂层"
+      }
+    ],
     "fetch_note": "选用的读取方式；失败原因（可选）"
   }
 ]
@@ -126,19 +233,30 @@ python3 ${CLAUDE_SKILL_DIR}/tools/patent_reader/validate_public_clues.py \
 
 - `status`：`agent_fetched`（已读）/ `fetch_failed`（打不开）/ `draft`（仅有链接）。
 - `related_claims` / `related_features`：弱匹配建议，**标注为推测**，不得写成说明书证据。
+- **`anchor_fits`（硬性 · 大模型主路径）**：你（Agent）**读完该线索页面/摘要全文后**，对照本案权要与特征表，为**真正有对应的**锚点各写一句贴合点（`fit`≤40～80字）。
+  - `kind`：`feature` | `claim` | `term`；`key` 必须能对上笔记里的特征名 / 权号 / 术语。
+  - **只写页面上能核验的对应**；摘要未点名的数值/尺寸特征不要硬编 `fit`（可省略该条，或入库后由脚本归入「另涉」）。
+  - 入库旁注**优先使用** `anchor_fits`；缺省时脚本才用启发式从 `summary` 抽句（效果较差）。
+  - 特征表若在写笔记时才定稿：第 4 步入库前应用最终特征名**回填/修订** `anchor_fits` 再写 `public_clues.json`。
 - **`summary` 写法（硬性）**：写成 3～8 条要点或两三句连贯短文；**禁止**粘贴导航/页脚/面包屑/整页纯文本；化学式写在同一行（如 `Al2O3/勃姆石涂覆`，勿拆成多行单字）。不要用行首 `>`（会在 Obsidian 变成引用竖线）。
 - 无可靠结果时写 `[]`，附录 B「未发现…」。
 - **禁止**把推测线索写进一至八主结论。
 
-入库脚本只做**结构化落地与 L1–L4 融合**（`clues/`、导航入口、各节折叠旁注、权/特征点对点、附录 B、Canvas）。脚本 HTTP 抓取仅为**降级**：仅当某条缺少 `summary` 且显式传入 `--fetch-clues-fallback` 时才尝试。
+入库脚本只做**结构化落地与 L1–L4 融合**（`clues/`、导航入口、各节折叠旁注、权/特征点对点、附录 B、Canvas）。**贴合句以 Agent `anchor_fits` 为准**；脚本 HTTP 抓取仅为**降级**：仅当某条缺少 `summary` 且显式传入 `--fetch-clues-fallback` 时才尝试。
 
 ### 第 3 步：`note_plan.json`
 
-含 `context_anchor_ref`、`public_clues_ref`、`grounding`。
+含 `context_anchor_ref`、`public_clues_ref`、`grounding`；可选内嵌 `claim_deltas`（若未单独写 `claim_deltas.json`）。
 
 ### 第 4 步：写解读笔记
 
 遵循 **L0 Callout 模板**（`[!patent-meta]`、`[!grounding]`、`[!warning]-`）。
+
+**说明书段落依据（硬性）**：引用原文段落时写 **`说明书 0002`** 或区间 **`说明书 0002–0004`**（四位编号，用 en-dash `–`）。**禁止**再写裸 `[0002]`（Obsidian 会误染成假链接）。  
+入库会生成同目录 `{公开号}_说明书段落.md`（仅含本篇引用到的段；文首含页面预览**使用说明**），并把上述写法改成**单条**可悬停预览 wikilink，例如 `[[…#^p0002|说明书 0002]]`、`[[…#^r0002-0004|说明书 0002–0004]]`。  
+正文可写「权2–3」「图1–3」：入库改为 `[[…_权项锚点#^claim-N|权N]]`（旁路笔记）、`[[#图N|图N]]`（附图区标题）。悬停预览需开启「页面预览」并**按住 Ctrl**。
+
+第三节可先留简表或占位；**入库会按 `claim_tree` + `claim_deltas` 重写第三节树形表**。第四节独立权精读仍须你写 callout 与特征表。
 
 若有 `figures/manifest.json`：
 - `decision=insert` → 第六节 `![[images/…]]`（入库脚本也会自动补嵌）
@@ -174,11 +292,13 @@ python3 ${CLAUDE_SKILL_DIR}/tools/patent_reader/write_patent_obsidian_note.py \
   --workdir tmp/patent_reader/${RUN} \
   --lint-json tmp/patent_reader/${RUN}/lint.json \
   --output tmp/patent_reader/${RUN}/write_status.json
+# workdir 内若有 claim_deltas.json，第三节「本项新增」优先采用（也可 --claim-deltas 显式指定）
 # 可选：--include-review（入库时把 review 图当 insert）
 # 可选：--strict-figures（要求笔记已嵌入，禁止只靠自动补嵌）
+# 官方 PDF 默认拷到笔记目录 source/；不需要时加 --no-copy-source-pdf
 ```
 
-自动：`bootstrap_vault`（CSS / Bases / 关系图）、frontmatter 标签、`*.canvas` 图谱（叙事/著录/权项/术语/相关专利/**公开线索卡**）、`clues/` 落地（用第 2 步 Agent 已写的 summary）、扫描件整页预览、术语反链。线索脚本抓取默认关闭，仅 `--fetch-clues-fallback`。无 vault 时仍写 `outputs/`。入库可加 `--scan-pages`。
+自动：`bootstrap_vault`（CSS / Bases / 关系图）、frontmatter 标签、`*.canvas` 图谱（叙事/著录/权项/术语/相关专利/**公开线索卡**）、第三节树形表（**本项新增优先 `claim_deltas`**）、`clues/` 落地（用第 2 步 Agent 已写的 summary/`anchor_fits`）、**说明书段落锚点笔记 + 引用 wikilink 改写**、**官方 PDF → `source/`（默认）**、扫描件整页预览、术语反链。线索脚本抓取默认关闭，仅 `--fetch-clues-fallback`。无 vault 时仍写 `outputs/`。入库可加 `--scan-pages`。
 
 可选单独生成 Canvas：
 

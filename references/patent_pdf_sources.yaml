@@ -1,0 +1,66 @@
+# 专利全文 PDF 取证源（解读模式 fetch_patent_pdf.py 使用）
+# 无稳定「国内免费全文官方镜像」可当默认源；国知局 epub 用于核验元数据/摘要。
+# priority 越小越优先；Agent 勿每次现写下载脚本。
+
+sources:
+  - id: google_patents_page
+    priority: 10
+    role: primary
+    status: proven
+    name: Google Patents 详情页
+    page_templates:
+      - "https://patents.google.com/patent/{pub}/zh"
+      - "https://patents.google.com/patent/{pub}/en"
+      - "https://patents.google.com/patent/{pub}"
+    notes: |
+      从 HTML 解析 citation_pdf_url / pdfLink / patentimages CDN。
+      直链 https://patents.google.com/patent/{pub}.pdf 常 404，勿当作主路径。
+      国内网络偶发超时，可重试或换时段。
+
+  - id: google_patentimages_cdn
+    priority: 20
+    role: download
+    status: proven
+    name: Google Patents PDF CDN
+    host: patentimages.storage.googleapis.com
+    url_pattern: "https://patentimages.storage.googleapis.com/<hash-path>/{pub}.pdf"
+    notes: |
+      实战多次成功（含示例 CN119961390A / CN119961396A / CN114552122A）。
+      hash 路径须从详情页解析，不可臆造。
+
+  - id: cnipa_epub
+    priority: 30
+    role: verify_meta
+    status: proven
+    name: 中国专利公布公告（国知局）
+    page_templates:
+      - "http://epub.cnipa.gov.cn/patent/{pub}"
+    tool: tools/cnipa_epub_search.py
+    notes: |
+      核验公开号、标题、摘要、申请人可靠；详情页通常不提供可脚本化全文 PDF。
+      交底书查新与解读取证的元数据优先源。
+
+  - id: user_local_pdf
+    priority: 5
+    role: override
+    status: proven
+    name: 用户本地 PDF / 已下载文件
+    notes: 若用户已提供路径，跳过联网下载，直接 extract。
+
+# 非默认 / 不稳定（记录以免重复踩坑；脚本默认不依赖）
+unstable_or_skip:
+  - id: patentguru
+    status: unreliable
+    notes: 部分公开号 404，不作默认备选。
+  - id: google_patent_dot_pdf
+    status: often_404
+    notes: patents.google.com/patent/{pub}.pdf 常失败。
+  - id: commercial_dbs
+    status: account_required
+    notes: 智慧芽/incoPat 等需账号，不写入默认技能链路。
+
+# 示例专利已知 CDN（仅 examples；通用下载仍应解析页面）
+known_cdn_examples:
+  CN119961390A: "https://patentimages.storage.googleapis.com/58/1b/9b/07a9f35635df34/CN119961390A.pdf"
+  CN119961396A: "https://patentimages.storage.googleapis.com/3f/29/d0/a2461c5080d73d/CN119961396A.pdf"
+  CN114552122A: "https://patentimages.storage.googleapis.com/c2/6c/51/75412585086edf/CN114552122A.pdf"

@@ -24,7 +24,7 @@ REQUIRED_HEADINGS = [
     (re.compile(r"^##\s*四、\s*独立权利要求精读", re.M), "独立权利要求精读"),
     (re.compile(r"^##\s*五、\s*专利内术语表", re.M), "专利内术语表"),
     (re.compile(r"^##\s*六、\s*特征", re.M), "特征—说明书—附图对照"),
-    (re.compile(r"^##\s*八、\s*给你的阅读建议", re.M), "给你的阅读建议"),
+    (re.compile(r"^##\s*八、\s*(?:给你的)?阅读建议", re.M), "阅读建议"),
     (re.compile(r"^##\s*九、\s*技术应用场景", re.M), "技术应用场景"),
     (re.compile(r"^##\s*十、\s*附录", re.M), "附录"),
     (re.compile(r"^##\s*十一、\s*免责声明", re.M), "免责声明"),
@@ -140,7 +140,10 @@ def main(argv: list[str] | None = None) -> int:
     sec9_m = re.search(r"##\s*九、技术应用场景[\s\S]*?(?=##\s*十、)", note)
     if sec9_m:
         sec9 = sec9_m.group(0)
-        if not re.search(r"desc_|实施例|背景", sec9):
+        if not re.search(
+            r"desc_|实施例|背景|说明书\s*\d{4}|说明书段落",
+            sec9,
+        ):
             issues.append("section9_missing_patent_grounding")
         if re.search(r"https?://", sec9):
             issues.append("section9_contains_url_use_appendix_b")
