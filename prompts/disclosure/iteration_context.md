@@ -24,6 +24,7 @@
 
 - 对话中的本轮说明；用户 **@** 的文件或粘贴片段。
 - **`Read`** 当前作为基准的交底书 `.md`（路径由用户给出或对话中已出现）。
+- 若目标为完整申报包、项目方案与申请文件同步深化或收件人可直接转发的目录，先 **`Read`** `references/filing_ready_iteration_delivery.md`，并冻结基线版本、目标版本、目标状态、唯一 `MERGE_TAG` 与交付对象。
 - 实用新型 / 外观：迭代涉及附图或主题时，**必**处理案件目录 **`figure_plan.yaml`**（**无则创建、有则 Read 后重评**；并 Read structure/appearance schema 若存在）。
 
 **输出**
@@ -35,6 +36,13 @@
 - 实用/外观：材料或主题有变时，**同目录更新 `figure_plan.yaml`**（可覆盖该清单文件；正文仍用新时间戳），使入文图、相关性排序与 **`relates_to`** 与当前主题一致。
 
 版本历史依赖**同目录下多个带时间戳的文件**，不需要 `iterations/` 子目录或快照脚本。
+
+### 增量身份与幂等门（完整申报包必做）
+
+- 为每轮实质合并建立唯一标识：`MERGE_TAG: patent-disclosure/{案件短名}/{YYYYMMDDHHmmss}/{主题短名}`。
+- 改稿前搜索基线目录、`交底书修订对话记录.md`、`迭代差异清单.md` 和 `版本合并摘要.md`；同一 `MERGE_TAG` 已存在时，不得重复应用相同增量，只能核验或创建新的修订tag。
+- `MERGE_TAG` 仅写入内部版本记录、差异清单和合并摘要，不写入说明书、权利要求书、摘要或法定附图。
+- 正式包须建立五类差异：**保留、扩写、改写、删除、仅作风险披露**。未分类的新增内容不得直接进入定稿。
 
 ### 修订对话记录（单独 Markdown，必做）
 
@@ -65,15 +73,16 @@ python ${CLAUDE_SKILL_DIR}/tools/shared/iteration_dialog_log.py --case-dir "{案
 ## 建议执行顺序（短清单）
 
 1. 读本文 → 按上表选 `merger.md` 或 `correction_handler.md` 并 **`Read`**。
-2. **`Read`** 基准稿 + 本轮补充材料；实用/外观若改图或主题，**`Read`/`Write` `figure_plan.yaml`（无则创建）**。  
+2. 完整申报包/项目方案任务再读 `references/filing_ready_iteration_delivery.md`，冻结目标状态、交付对象与 `MERGE_TAG`。
+3. **`Read`** 基准稿 + 本轮补充材料；正式包建立五类差异表与事实冲突表；实用/外观若改图或主题，**`Read`/`Write` `figure_plan.yaml`（无则创建）**。
    - 若本轮**新增/更新**了目录内文件：再跑 **`tools/shared/cad_scan.py -r …`**（规则同 `project_scan.md`「CAD / STEP」）。  
    - `ask_enable_step_parse` → **先反问**，确认前不装依赖、不改 STEP 视图；`hint_export_step` → 本轮交付回复**末尾**提示导出 STEP。  
    - 外观且用户本轮要求辅助线稿：按 `design_lineart_assist.md`（须「是」+ 有参考图）。  
    - 实用且用户本轮要求结构辅助线稿：按 `structure_lineart_assist.md`（须「是」+ 有参考图 + Structure；序号优先 overlay）。  
-3. 在稿内完成合并或纠正逻辑（自检 **8.2、8.3** 见 `disclosure_self_check.md`；实用/外观核 **8.4/8.5**）。  
-4. **`Write`** 新时间戳 `.md` → 运行 **`mermaid_render.py -o`** 写出定稿图与 **`.docx`**。  
-5. 追加 **`交底书修订对话记录.md`**（**`iteration_dialog_log.py`** 或手工），见上文「修订对话记录」。  
-6. 在回复中写明新文件路径，并输出该模板要求的 **「合并摘要（留档）」**或 **「纠正摘要（留档）」**（含 figure_plan 是否同步；若有 CAD 提示须写在回复末尾）。
+4. 在稿内完成合并或纠正逻辑（自检 **8.2、8.3**；实用/外观核 **8.4/8.5**；完整申报包额外核 **8.6**）。
+5. **`Write`** 新时间戳 `.md` → 运行 **`mermaid_render.py -o`** 写出定稿图与 **`.docx`**。
+6. 追加 **`交底书修订对话记录.md`**；完整申报包同时更新 `迭代差异清单.md` 与 `版本合并摘要.md`，三处登记同一 `MERGE_TAG`。
+7. 在回复中写明新文件路径，并输出该模板要求的 **「合并摘要（留档）」**或 **「纠正摘要（留档）」**（含 figure_plan 是否同步；完整申报包含 `MERGE_TAG`；若有 CAD 提示须写在回复末尾）。
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: patent-disclosure-skill
 description: "中国专利技能：专利点挖掘与交底书（发明/实用/外观）编写，通俗解读专利，嗅探政策动向，辅助审查答复。| China patents skill: mine patent points and draft disclosures (invention / utility model / design), plain-language reading, policy sniffing, assisted office-action response."
-version: "3.5.0"
+version: "3.6.0"
 user-invocable: true
 argument-hint: "[可选：项目路径 / 专利号或 PDF / 政策动向嗅探或技能进化 / 审查答复或案例入库]"
 allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
@@ -65,6 +65,7 @@ docs/oa/                     # 模式 D：embedding 配置模板种子（运行�
 - **交底书**：专利挖掘、交底书、查新、实用新型、外观设计等；`/patent-disclosure-skill`、`/交底书`。
 - **通俗解读**：读专利、公开号 / PDF 且目标为理解；`/patent-read`、`/读专利`。
 - **交底书迭代**：已有交底上补材料/纠错 → `disclosure/iteration_context.md` → `merger` / `correction_handler`；另存时间戳稿。
+- **完整申报包深化**：用户要求从候选评分切换为可交代理师复核的完整包、同步深化项目方案与申请文件、制作领导/事务所可直接转发的目录，或要求蒸馏既有交付经验 → `disclosure/iteration_context.md` → **`references/filing_ready_iteration_delivery.md`** → `merger.md` → `disclosure_self_check.md §8.6`。组合创造性风险须披露，但不得自动代替文件申报判断。
 - **技能进化旁路**：技能进化、政策/审查动向嗅探、政策雷达、审查政策更新、自进化、`/patent-evolve`、`/技能进化` → **仅此时**进入模式 C。
 - **审查答复 / 案例入库**：审查意见、意见陈述、OA、补正通知书、案例入库、`/oa`、`/审查答复` → **仅此时**进入模式 D。
 
@@ -105,6 +106,7 @@ docs/oa/                     # 模式 D：embedding 配置模板种子（运行�
 | Step 7 | 对应类型目录 `disclosure_builder.md` + `template_reference.md` | 成文（**分文件**；发明含公式时先 `formula_plan.yaml`） |
 | Step 8 | `prompts/disclosure/disclosure_self_check.md` | 内部自检（含 §8.4 / §8.5） |
 | 迭代 | `disclosure/iteration_context.md` / `merger.md` / `correction_handler.md` | 另存 |
+| 完整申报包深化 | `references/filing_ready_iteration_delivery.md` | 双门模型、五项申报硬门、证据追溯、五类差异、`MERGE_TAG`、文件生产与收件人目录 |
 
 ### 专利通俗解读
 
@@ -201,6 +203,7 @@ docs/oa/                     # 模式 D：embedding 配置模板种子（运行�
 
 - 补材料 / 扩展：`iteration_context` → `merger` → 新时间戳稿（实用/外观若改图或主题须同步 **`figure_plan`**）  
 - 纠错：`iteration_context` → `correction_handler` → 新时间戳稿（同上）  
+- 完整申报包 / 项目方案同步深化：`iteration_context` → `references/filing_ready_iteration_delivery.md` → `merger` → `disclosure_self_check §8.6`；用唯一 `MERGE_TAG` 防重复，不以内部综合评分替代五项申报硬门。
 
 ---
 
@@ -222,4 +225,7 @@ docs/oa/                     # 模式 D：embedding 配置模板种子（运行�
 □ 交底定稿交付：已按 evolution/soft_nudge 判断是否加低频一句（未每次必出、未写入正文）
 □ 模式 D：已显式触发；向量可选已反问（可跳过）；PDF 已自动抽取；入库已脱敏；检索展示 retrieval_mode；向量失败已回退标签；需重建时已人确认；草稿已人审提示
 □ 路径使用 prompts/disclosure|reader|shared|evolution|oa 与 tools/crawl|shared|oa|patent_reader/{extract,analyze,vault,shared}
+□ 完整申报包已区分“发明探索门”与“文件申报门”；五项硬门逐项通过或明确阻断，I4/I5组合风险进入代理师风险说明而非被隐匿
+□ 正式包增量已有唯一 MERGE_TAG，已查重并登记在迭代记录/差异清单/版本摘要；法定正文不含该内部tag
+□ 收件人目录不含脚本、缓存、淘汰路线或内部评审稿；DOCX/PDF已做OOXML、中文可见文字、图号、分页和逐页渲染检查
 ```
