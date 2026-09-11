@@ -39,6 +39,10 @@ _BARE_PAREN_SUB = re.compile(r"(?<!\\)\([A-Za-z][A-Za-z0-9]*_\{[^()\n]{0,120}\)"
 _INLINE_CODE = re.compile(r"`[^`]*`")
 _FENCE_OPEN = re.compile(r"^(```|~~~)")
 
+# 行内公式 \(...\) 内部允许合法 LaTeX 嵌套（含 \bigl( ... \bigr) 等），不扫。
+# 逐行处理，\( 与最近的 \) 配对即可；非贪婪避免跨段匹配。
+_INLINE_MATH = re.compile(r"\\\((?:[^\\]|\\.)*?\\\)")
+
 
 @dataclass(frozen=True)
 class BareParenHit:
@@ -48,6 +52,10 @@ class BareParenHit:
 
 def _mask_inline_code(line: str) -> str:
     return _INLINE_CODE.sub(lambda m: " " * len(m.group(0)), line)
+
+
+def _mask_inline_math(line: str) -> str:
+    return _INLINE_MATH.sub(lambda m: " " * len(m.group(0)), line)
 
 
 def find_bare_paren_latex(md: str) -> list[BareParenHit]:
@@ -61,7 +69,7 @@ def find_bare_paren_latex(md: str) -> list[BareParenHit]:
             continue
         if in_fence:
             continue
-        line = _mask_inline_code(raw)
+        line = _mask_inline_code(_mask_inline_math(raw))
         seen: set[tuple[int, int]] = set()
         for cre in (_BARE_PAREN_CMD, _BARE_PAREN_SUB):
             for m in cre.finditer(line):
