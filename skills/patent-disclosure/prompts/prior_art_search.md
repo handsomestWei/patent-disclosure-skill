@@ -74,6 +74,7 @@
    - 解析命中时请以 **stdout 该行 JSON 为准**。
    - 将 JSON 中**可核验**的公开号、标题、**国知局站点内详情链接**写入查新笔记与 1.1（见下 **`abstract` 必用**）。
    - **降级条件**（满足任一则进入 **B**）：**退出码非 0**、超时、无 Playwright 且安装失败、stdout **无** `EPUB_HITS_JSON:`、**`EPUB_HITS_JSON` 为空数组**、或条目经人工核对明显与主题无关。**仅有 stderr / 乱码 / NativeCommandError 而退出码为 0 且 JSON 非空 → 不降级。**
+   - **WAF 退避**：若 `cnipa_epub_search.py` 连续 2 次 `Page.goto Timeout` 或 `Page.wait_for_function Timeout`，且 `browser.py --probe` 显示浏览器正常——属公布站 WAF / 反爬对本机 IP 段生效，**不再重试**，按 **§B**（WebSearch）降级；可在 docs/run-log 注明「本次 IP 段被拦」，便于复盘。属站点侧拦截而非脚本问题，**禁止**因此反复重装 playwright / chromium。
 
 6. **`abstract` 字段（国知局条目，规定必用）**
 
