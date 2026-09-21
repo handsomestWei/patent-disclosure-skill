@@ -25,11 +25,20 @@
 └── [根目录]/             ← 系统设计、架构说明、模块与数据流
 ```
 
+## 文档敏感信息检查
+
+**读取文档前**，**必须**先检查敏感信息：
+  ```bash
+  python skills/patent-disclosure/tools/data_mask.py examine_code_file "<项目根目录>"
+  ```
+  **将检测结果告知用户**（含「检测到 N 处敏感信息」或「未发现敏感信息」），并等待用户回复确认后，方可读取原文件。禁止在未获得用户确认的情况下直接阅读。
+
+
 ## 执行提示
 
 - 大仓库先用搜索 / 语义检索定位关键文件，再精读。
 - 记录**引用路径或文件名**，便于在交底书中写「参见某设计」时脱敏表述。
-- 凡出现 **`.docx` / `.pptx`**，**必须**按下一节 **「Office 文档」** 先转 Markdown 再读，不可跳过或只扫纯文本而漏掉 Office。
+- 凡出现 **`.docx` / `.pptx` / `.pdf`**，**必须**按下一节 **「Office 文档与 PDF」** 先转 Markdown 再读，不可跳过或只扫纯文本而漏掉 Office/PDF。
 - 凡扫描树内可能有 CAD / 三维文件，**必须**按 **「CAD / STEP（可选，默认关闭）」** 执行分类；**不得**在用户未确认时安装 STEP 依赖或运行 `step_to_views.py`。
 
 ## CAD / STEP（可选，默认关闭）
@@ -74,10 +83,10 @@ python skills/patent-disclosure/tools/run_step_to_views.py --enable-step-parse \
 ```
 
 - **禁止**把 CadQuery 装进主环境 / 3.13。本机已是 3.11 或 3.12 时用当前解释器建 venv，**不要**强行再装 3.10。
-- 产出：`views/*.svg`（必有）；`views/*.png`（有 Cairo 或浏览器时）；`assembly_tree.yaml`、`structure_schema.seed.yaml`、`figure_plan.seed.yaml`。无 PNG 时 figure_plan 用 SVG。  
-- `figure_plan.seed.yaml` 里 CAD 条为 `kind: cad`、`use_in_disclosure: false`、`role: reference`：**不是线稿，不得入文**。  
-- 随后按 `fill_structure_schema.md` 审改 seed：识图重评 `relevance` / `quality` / `score`，CAD 条保持不入文。再跑 `image_gen.py`：有合格线稿才跳过生成，否则以高分 CAD/实拍为参考图生图，或文生图。另存新时间戳交底稿。  
-- **禁止**无 `--enable-step-parse`（且无环境变量 `PATENT_SKILL_STEP_PARSE=1`）时强行转换。  
+- 产出：`views/*.svg`（必有）；`views/*.png`（有 Cairo 或浏览器时）；`assembly_tree.yaml`、`structure_schema.seed.yaml`、`figure_plan.seed.yaml`。无 PNG 时 figure_plan 用 SVG。
+- `figure_plan.seed.yaml` 里 CAD 条为 `kind: cad`、`use_in_disclosure: false`、`role: reference`：**不是线稿，不得入文**。
+- 随后按 `fill_structure_schema.md` 审改 seed：识图重评 `relevance` / `quality` / `score`，CAD 条保持不入文。再跑 `image_gen.py`：有合格线稿才跳过生成，否则以高分 CAD/实拍为参考图生图，或文生图。另存新时间戳交底稿。
+- **禁止**无 `--enable-step-parse`（且无环境变量 `PATENT_SKILL_STEP_PARSE=1`）时强行转换。
 - 用户回复 **否**：记录决定，保留已交付稿；可在 **`## 交付后请确认` 第 1 条**保留「日后可再开 STEP 解析」一句。
 
 **后缀**：`.step`/`.stp` 为可解析目标；原生 CAD（`.sldprt`/`.sldasm`/`.ipt`/`.iam`/`.prt`/`.asm`/`.catpart`/…）见 `tools/cad_formats.py`，**本技能不直接解析**。
@@ -86,37 +95,38 @@ python skills/patent-disclosure/tools/run_step_to_views.py --enable-step-parse \
 
 仅**外观设计**。细则：`prompts/image_gen.md` + `prompts/design_lineart_assist.md`。
 
-- **默认开**；**不问用户**。填 Appearance + figure_plan 后跑 `image_gen.py`，再写 brief / 出门禁 / 生成或选用线稿。  
-- 线稿只有两条路：材料已有合格 `kind: lineart`，或大模型生成（图生图 → 失败则先描述再文生图）。  
-- 干净实拍 **和** 线稿都写入交底 Markdown 与 Word。实拍不得标成线稿。CAD 不入文。  
+- **默认开**；**不问用户**。填 Appearance + figure_plan 后跑 `image_gen.py`，再写 brief / 出门禁 / 生成或选用线稿。
+- 线稿只有两条路：材料已有合格 `kind: lineart`，或大模型生成（图生图 → 失败则先描述再文生图）。
+- 干净实拍 **和** 线稿都写入交底 Markdown 与 Word。实拍不得标成线稿。CAD 不入文。
 - 仅用户明确不要线稿或 `PATENT_SKILL_SKIP_LINEART=1` 才跳过。
 
 ## 实用新型结构线稿（必做）
 
 仅**实用新型**。细则：`prompts/image_gen.md` + `prompts/structure_lineart_assist.md` + `prompts/structure_lineart_compose.md`。
 
-- **默认开**；**不问用户**。填 Structure + figure_plan 后跑 `image_gen.py`。  
-- CAD 投影 **不是**线稿、**不得**入文；分数够才可能作图生图参考。  
-- 轮廓按 `parts` **拼装**为子 SVG + 总图相对引用，序号层推荐 **overlay 注入**（禁止自创件号）。勿与 `design_lineart_*` 混用。  
+- **默认开**；**不问用户**。填 Structure + figure_plan 后跑 `image_gen.py`。
+- CAD 投影 **不是**线稿、**不得**入文；分数够才可能作图生图参考。
+- 轮廓按 `parts` **拼装**为子 SVG + 总图相对引用，序号层推荐 **overlay 注入**（禁止自创件号）。勿与 `design_lineart_*` 混用。
 - 仅用户明确不要线稿或 `PATENT_SKILL_SKIP_LINEART=1` 才跳过。
 
-## Office 文档（.docx / .pptx）：必先转换再读
+## Office 文档与 PDF（.docx / .pptx / .pdf）：必先转换再读
 
-**格式**：脚本仅支持 OOXML（**`.docx` / `.pptx`**）。旧版 **`.doc` / `.ppt`** 须先在 Office / WPS 中**另存为**新格式后再走下列流程。
+**格式**：脚本仅支持 OOXML（**`.docx` / `.pptx`**）和 PDF（**`.pdf`**）。旧版 **`.doc` / `.ppt`** 须先在 Office / WPS 中**另存为**新格式后再走下列流程。
 
-Agent **不得**因「只能舒适读取文本」而**遗漏**项目内的 Word / PPT：**必须先转为 Markdown 再纳入扫描**，不能只扫 `.md` 与源码。
+Agent **不得**因「只能舒适读取文本」而**遗漏**项目内的 Word / PPT / PDF：**必须先转为 Markdown 再纳入扫描**，不能只扫 `.md` 与源码。
 
-1. **发现**：在扫描目录内 **`Glob` 或列举** `*.docx`、`*.pptx`（含子目录，如 `docs/sample_*.docx`）。
+1. **发现**：在扫描目录内 **`Glob` 或列举** `*.docx`、`*.pptx`、`*.pdf`（含子目录，如 `docs/sample_*.docx`）。
 2. **转换（本仓库脚本）**：对每个文件执行（路径相对本技能仓库根）：
 
    ```bash
    python skills/patent-disclosure/tools/docx_to_md.py -i "<路径>/<名>.docx" -o "<同目录或 docs>/<名>.md"
    python skills/patent-disclosure/tools/pptx_to_md.py -i "<路径>/<名>.pptx" -o "<同目录或 docs>/<名>.md"
+   python skills/patent-disclosure/tools/pdf_to_md.py -i "<路径>/<名>.pdf" -o "<同目录或 docs>/<名>.md"
    ```
 
    需已 `pip install -r requirements.txt`。输出旁会生成 **`{md 主名}_media/`**，内为嵌入图，**以生成的 `.md` 正文与图片引用为扫描依据**。
 3. **再读**：**`Read`** 上述新生成的 `.md`（及必要时扫一眼 `_media` 文件名用于脱敏引用），与原有 `.md`、代码**同等对待**，摘要进专利点材料表。
-4. **解析重点**：表格、编号列表、**PPT 每页标题与正文**、**Word 修订区以外的正文**、**备注**（`pptx_to_md` 会写入「备注」小节）——均属可专利化叙述来源。
+4. **解析重点**：表格、编号列表、**PPT 每页标题与正文**、**Word 修订区以外的正文**、**备注**（`pptx_to_md` 会写入「备注」小节）、**PDF 每页正文**——均属可专利化叙述来源。
 
 ## 图片与裸图目录（默认不识图）
 

@@ -17,6 +17,8 @@ import argparse
 import sys
 from pathlib import Path
 
+from data_mask import content_remove_sensitive
+
 
 def _require_pptx():
     try:
@@ -128,6 +130,7 @@ def _run(input_pptx: Path, output_md: Path, media_dir: Path | None) -> int:
             pass
 
     body = "".join(lines).rstrip() + "\n"
+    body = content_remove_sensitive(body)
     output_md.write_text(body, encoding="utf-8")
 
     print(f"已写入: {output_md}")
