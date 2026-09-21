@@ -17,6 +17,8 @@ import argparse
 import sys
 from pathlib import Path
 
+from data_mask import content_remove_sensitive
+
 
 def _require_mammoth():
     try:
@@ -96,7 +98,8 @@ def _run(
     header = (
         f"<!-- 由 docx_to_md.py 自 {input_docx.name} 转换，勿手改本行元信息 -->\n\n"
     )
-    output_md.write_text(header + text + ("\n" if text else ""), encoding="utf-8")
+    body = content_remove_sensitive(header + text + ("\n" if text else ""))
+    output_md.write_text(body, encoding="utf-8")
 
     print(f"已写入: {output_md}")
     print(f"图片目录: {media_dir}")
