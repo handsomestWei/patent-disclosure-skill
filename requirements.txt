@@ -1,4 +1,4 @@
-# Used by skills/patent-disclosure/tools/md_to_docx.py, docx_to_md.py, pptx_to_md.py,
+# Used by skills/patent-disclosure/tools/md_to_docx.py, docx_to_md.py, pptx_to_md.py, pdf_to_md.py,
 # mermaid_render.py, formula_plan.
 python-docx>=1.1.0
 # Word editable math (LaTeX -> MathML -> OMML); keep source text on failure
@@ -10,6 +10,10 @@ PyYAML>=6.0
 playwright>=1.40.0
 mammoth>=1.6.0
 python-pptx>=0.6.21
+# PDF text extraction
+pdfplumber>=0.10.0
+# PDF image extraction
+PyMuPDF>=1.23.0
 
 # Optional: formula PNG (OMML fail AND user says yes; ~100MB incl numpy)
 #   pip install matplotlib
