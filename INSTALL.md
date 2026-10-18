@@ -131,7 +131,23 @@ python skills/patent-disclosure/tools/structure_lineart_gate.py --case-dir outpu
 python skills/patent-disclosure/tools/structure_lineart_compose.py --case-dir outputs/{案件}
 ```
 
-流程见 `skills/patent-disclosure/prompts/image_gen.md`、`design_lineart_assist.md`、`structure_lineart_assist.md`、`structure_lineart_compose.md`。结构线稿按 `parts` 写出子 SVG 再拼总图、再 overlay 件号，禁止自创件号。
+流程见 `skills/patent-disclosure/prompts/image_gen.md`、`design_lineart_assist.md`、`structure_lineart_assist.md`、`structure_lineart_compose.md`；出图执行见 `figure_generation.md`（上节图像生成后端）。结构线稿按 `parts` 写出子 SVG 再拼总图、再 overlay 件号，禁止自创件号。
+
+## 可选：图像生成后端（专利附图生图）
+
+交底 3.2 / 3.4、实用 / 外观线稿、申请发明附图默认**先用生图**出图，失败的图回退上面的本地渲染。流程见 `skills/patent-disclosure/prompts/figure_generation.md`。
+
+- **宿主自带生图工具**（如 Codex、OpenClaw）：什么都不用装。
+- **没有内置工具**（如 Claude Code）：用 CLI 后端（GPT Image，OpenAI 或兼容代理）。Agent 征得同意后安装依赖，再请用户配置一次 key：
+
+  ```bash
+  pip install -r skills/patent-disclosure/tools/requirements-image.txt
+  python skills/patent-disclosure/tools/image_runtime.py config --api-key "sk-..." [--base-url https://代理/v1] [--model gpt-image-2.5-flare]
+  python skills/patent-disclosure/tools/image_runtime.py doctor --check-api
+  ```
+
+  配置只写 `~/.patent-skill/.env`（可用 `PATENT_SKILL_HOME` 改目录），变量为 `PATENT_SKILL_IMAGE_API_KEY` / `PATENT_SKILL_IMAGE_BASE_URL` / `PATENT_SKILL_IMAGE_MODEL`，不读其它技能或 `OPENAI_*` 的配置。申请包用本包副本 `skills/patent-application/tools/`，两包读同一份配置。
+- **完全保持原行为**：`PATENT_SKILL_FIGURE_BACKEND=local`，所有附图按上面的本地渲染出图。
 
 ## 可选：国知局公布公告站抓取（交底查新与著录检索）
 

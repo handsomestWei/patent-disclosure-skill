@@ -61,7 +61,7 @@
 - [ ] **迭代路径**：若本次走 `merger.md` / `correction_handler.md`，对话中是否已含 **`## 合并摘要（留档）`** 或 **`## 纠正摘要（留档）`**（按该 prompt 字数要求）
 - [ ] **修订对话记录**：案件目录是否已追加 **`交底书修订对话记录.md`** 一条（含记录时间、用户说明摘要、本轮交付文件名、摘要摘录），见 **`iteration_context.md`**
 - [ ] **交付文件名**：凡落盘交付的交底书是否均为 **`{案件名}_{YYYYMMDDHHmmss}.md`** 及同名 `.docx`（§7.3 第 5 点，**含首次定稿与迭代**），未无故覆盖旧稿
-- [ ] **图示（按类型）**：发明须 fenced mermaid → `tools/mermaid_render.py` 转 PNG，无 ASCII 框图；流程图节点若用 S1/S2 作 id，**可见标签须含该序号**（`S1["S1 …"]`，禁止 `S1[只写中文]`）；实用新型以 **`figure_plan.yaml`** 入文线稿为主（CAD/实拍不入文）；外观 **实拍 + 线稿** 均入 md 与 Word。正文「如图/见图 N」与清单 `fig` 一致。`.md` 已交付；发明须 `.docx`；实用建议 docx；外观须同名 `.docx`
+- [ ] **图示（按类型）**：发明须 fenced mermaid → `tools/mermaid_render.py` 转 PNG，无 ASCII 框图；流程图节点若用 S1/S2 作 id，**可见标签须含该序号**（`S1["S1 …"]`，禁止 `S1[只写中文]`）；实用新型以 **`figure_plan.yaml`** 入文线稿为主（CAD/实拍不入文）；外观 **实拍 + 线稿** 均入 md 与 Word。正文「如图/见图 N」与清单 `fig` 一致。出图后端不是 `local` 时，`figure_jobs.py status` 退出码为 0（无 pending / blocked），回退本地渲染的图已在「交付后请确认」点名。`.md` 已交付；发明须 `.docx`；实用建议 docx；外观须同名 `.docx`
 - [ ] **点名图**：用户要求入交底的图已拷入 `assets/` 并编号嵌入，或已说明不入文原因；未扫 `node_modules` / 前端素材目录；未把技术环境图当成外观 `photo_scene` 丢掉
 - [ ] **figure_plan（实用/外观）**：案件目录存在 `figure_plan.yaml`（或 json）；主题/材料若本轮有变，清单已重评（含 `relates_to`）；未入文图有 `reason`；总装+局部或入文多视时图际关联已填写
 - [ ] 章节引用：如「详见 3.4.1」须指向真实存在的章节

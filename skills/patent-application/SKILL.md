@@ -23,7 +23,7 @@ user-invocable: false
 1. **`Read`** `prompts/guardrails.md` → `intake.md`
 2. 已有申请产出上改稿（未要求整案重写）：**`Read`** `iteration_context.md` → `iteration.md`（新时间戳目录、出 Word、问题清单），到此结束
 3. 跑 `tools/material_gate.py --case-dir <交底目录>`；退出码 2 则停
-4. 发明 / 实用新型：`claim_strategy.md` → `claims_builder.md` → `figure_plan.md` → `figures.md` → `specification_builder.md` → `numeral_register.md` → `consistency.md`
+4. 发明 / 实用新型：`claim_strategy.md` → `claims_builder.md` → `figure_plan.md` → `figures.md`（出图前 `Read` `figure_generation.md`）→ `specification_builder.md` → `numeral_register.md` → `consistency.md`
 5. 外观：先 `Read` `references/design_view_cnipa.md`，只走 `design_application.md`；跑本包 `check_design_views.py`
 6. 本包 `tools/emit_application_docx.py` 出 Word；**`Read`** `issues.md`，写 `问题清单.md`（不入正式文件），并在**同一条交付回复**末块 **`## 交付后请确认`** 给出路径、摘要条目、请用户先看清单
 

@@ -20,6 +20,11 @@ python-pptx>=0.6.21
 #   python skills/patent-disclosure/tools/browser.py --probe
 #   only if no system browser: python -m playwright install chromium
 
+# Optional: image backend for patent figures (no built-in host image tool; user agrees)
+#   pip install -r skills/patent-disclosure/tools/requirements-image.txt   # openai, Pillow
+#   python skills/patent-disclosure/tools/image_runtime.py config --api-key "sk-..."
+#   PATENT_SKILL_FIGURE_BACKEND=local keeps local mermaid/SVG rendering only
+
 # Optional: STEP views (CadQuery inside skills/patent-disclosure/tools/cad-env; Python 3.10-3.12)
 #   python skills/patent-disclosure/tools/cad_venv.py
 #   python skills/patent-disclosure/tools/run_step_to_views.py --enable-step-parse -i model.step -o outputs/case/cad_views

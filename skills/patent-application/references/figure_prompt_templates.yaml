@@ -1,0 +1,105 @@
+# 专利附图生图 prompt 模板（figure_jobs.py prepare 读取；交底包与申请包同文副本）
+#
+# 字段沿用 codex-ppt 结构化 prompt：use_case / style / composition / constraints / negative。
+# subject 与 text_verbatim 由 figure_jobs.py 从来源（mermaid / invention_figures.yaml / 线稿 jobs）填入。
+# size 须为 16 的倍数、总像素 655,360–8,294,400、长短边比不超过 3:1（GPT Image 2 / 2.5）。
+# 改模板只改本文件；两包副本须一致（patent-application/tests/test_design_view_sync.py）。
+
+version: 1
+
+common:
+  # 模型可能自作主张返回透明底 PNG；显式要不透明白底，登记时另会压白（figure_jobs.py record）
+  background: opaque
+  constraints:
+    - Pure black lines on a pure white background; no color, no gray fills, no gradients, no shadows.
+    - Clean vector-like strokes of uniform weight, suitable for a patent drawing.
+    - Do not draw a figure number, figure title, caption, view name, page border, watermark or logo inside the image.
+    - Do not invent elements that are not listed in the request.
+  negative: color, gray shading, photorealism, 3D rendering, texture, decorative icons, handwriting, watermark, signature, figure numbers such as 图1 or Fig. 1
+
+kinds:
+  block_diagram:
+    use_case: Chinese patent disclosure system block diagram (系统框图)
+    style: black-and-white technical block diagram; rectangular boxes with thin solid outlines; dashed rectangles only for module groups
+    composition: tidy grid layout, generous white margins, straight orthogonal connector lines with arrowheads, no crossing lines where avoidable
+    size: 2048x1536
+    quality: high
+    constraints:
+      - Every box label must be rendered exactly as given in Text (verbatim), in Simplified Chinese, horizontally, fully legible.
+      - Keep exactly the boxes, groups and connections listed; no extra boxes or arrows.
+      - Do not add reference numerals such as (10) or (20) and do not add leader lines.
+
+  flowchart:
+    use_case: Chinese patent method flowchart (方法流程图)
+    style: black-and-white flowchart; rectangles for steps, diamonds for decisions, rounded rectangles only if a listed step is itself a start/end node
+    composition: top-to-bottom main flow centered on the page, loops routed along the page side, straight orthogonal arrows
+    size: 1536x2048
+    quality: high
+    constraints:
+      - Every step label must be rendered exactly as given in Text (verbatim), in Simplified Chinese, fully legible, including step identifiers.
+      - Keep exactly the listed steps, decisions and arrows in the listed order; do not merge, split or reorder steps.
+      - Label decision branches only with the given branch text.
+      - Do not add start/end terminals (开始 / 结束) or any box that is not listed; the first and last listed steps are the ends of the chart.
+
+  application_block_diagram:
+    use_case: CNIPA patent application drawing — system block diagram (说明书附图·框图)
+    style: strict black-and-white patent line drawing; thin solid box outlines; dashed rectangles for groups with the group name inside the dashed box
+    composition: columns from left to right as listed, modules stacked top to bottom inside each column without padding empty slots, orthogonal arrows
+    size: 2048x1536
+    quality: high
+    constraints:
+      - Render every module name exactly as given in Text (verbatim), Simplified Chinese.
+      - No reference numerals, no leader lines, no figure number, no caption.
+
+  application_flowchart:
+    use_case: CNIPA patent application drawing — method flowchart (说明书附图·流程图)
+    style: strict black-and-white patent flowchart; thin solid outlines; rectangles for steps, diamonds for decisions
+    composition: single vertical main flow in the listed order; side routes for loops; orthogonal arrows
+    size: 1536x2048
+    quality: high
+    constraints:
+      - Render every box text exactly as given in Text (verbatim), e.g. 「步骤一，……」; never use S1/S2 or 101/201 style labels.
+      - The number of step boxes must equal the number of listed steps.
+      - Do not add start/end terminals (开始 / 结束) or any box that is not listed.
+      - No reference numerals, no leader lines, no figure number, no caption.
+
+  design_lineart:
+    use_case: Chinese design patent view drawing (外观设计视图线稿)
+    style: black-and-white outline drawing; solid lines for claimed outlines, dashed lines only where the request says unclaimed
+    composition: one orthographic view (or one perspective view when the view is 立体图) centered on a white canvas, product only
+    size: 1536x1536
+    quality: high
+    constraints:
+      - Match the proportions, openings and contours of the reference image(s); do not invent unseen features.
+      - No dimension lines, center lines, dash-dot lines, hatching, shading lines, indicators or text of any kind.
+
+  structure_lineart:
+    use_case: Chinese utility model structure drawing — contour layer (实用新型结构线稿·轮廓层)
+    style: black-and-white mechanical line drawing; uniform outline weight; visible edges only
+    composition: the whole assembly in the requested view, centered, with white space around it for later part numbers
+    size: 1536x1536
+    quality: high
+    constraints:
+      - Draw only parts that are listed; anything uncertain is left out.
+      - Do NOT draw part numbers, leader lines, center lines, section lines or section arrows in this contour layer.
+      - Match the proportions in the reference image(s); do not invent internal structure that is not visible.
+
+  structure_part:
+    use_case: Chinese utility model structure drawing — one isolated part (单件线稿)
+    style: black-and-white mechanical line drawing of exactly one part
+    composition: the single named part centered on a white canvas
+    size: 1024x1024
+    quality: high
+    constraints:
+      - Exactly one part; no other parts, no part numbers, no leader lines.
+
+  structure_callout:
+    use_case: Add part numbers and leader lines to an existing patent structure drawing (件号与引出线)
+    style: thin straight black leader lines; plain black Arabic numerals; same stroke weight as the drawing
+    composition: numbers placed in the white space outside the outer silhouette, spread around the drawing; each leader line ends on the ink of its own part
+    size: 1536x1536
+    quality: high
+    constraints:
+      - Keep every existing contour pixel unchanged; only add leader lines and numerals.
+      - Use exactly the listed part numbers, each once; no other numbers or text.
+      - A leader must end on the named part, never in an empty cavity or on a neighbouring part.

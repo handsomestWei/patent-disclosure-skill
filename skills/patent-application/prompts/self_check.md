@@ -14,6 +14,7 @@
 - [ ] 交底 `formula_plan.yaml` 若存在：说明书符号+式面+数值例与计划同义，权要只有文字关系
 - [ ] 点名图已判别入文或拒绝；未扫工程素材
 - [ ] 已出三件 Word 与 `figures/图N.png`（或问题清单已记 PNG 失败）
+- [ ] 出图后端不是 `local` 时：`figure_jobs.py status` 退出码 0；生成图已逐字核对框内文字、框数与独权一致、纯黑白无图号；回退 `render_invention_figures.py --only` 的图已在「交付后请确认」点名
 - [ ] **行内公式分隔符**：`emit_application_docx.py` 若打印 **`DOCX: ok=0 reason=latex_delim`**（stderr 另有 **`LATEX_DELIM: hits=`** 与 `LATEX_DELIM_FILE:`），说明该文件把行内公式写成了普通括号（如 `(M_{\mathrm{total}})`）。**该文件 Word 未写出**。须改成 `\(…\)` 后重跑脚本，不得交付坏公式 Word；确无法改则记问题清单
 - [ ] 交底里的多行对照/参数表已作为说明书「表N」保留，未收成段落
 - [ ] **外观**：已按 `design_view_cnipa.md` 核查；原样复制入文图，未跑 `compose_application_figure.py`、未改原图像素；已选定全线稿或全实拍；不合格（落面、省略用语、混交、投影、图幅/DPI）只写入问题清单，未默补假面

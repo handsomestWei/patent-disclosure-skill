@@ -44,7 +44,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 
 ## 通则
 
-- **工具归属**：填表、线稿、CAD、公式、Word 出图在交底包 `prompts/` 与 `tools/`；解读填表用解读包 `prompts/fill_*`；过 WAF 的 `browser.py`、Markdown 转 Word 的 `md_to_docx.py` **各包自带副本**。
+- **工具归属**：填表、线稿、CAD、公式、Word 出图在交底包 `prompts/` 与 `tools/`；绘制类附图的出图后端见 `prompts/figure_generation.md`（交底包、申请包各带同文副本）；解读填表用解读包 `prompts/fill_*`；过 WAF 的 `browser.py`、Markdown 转 Word 的 `md_to_docx.py` **各包自带副本**。
 - **脚本归属**：只用当前子技能自己的 `tools/`。同一能力已有本包副本时，跑本包这一份。
 - **调度视同点名**：由案卷调度申请文件视为已点名申请文件，**仍须**有交底目录。由对照表派解读 / 检索视为已点名该包。
 - **子技能封面**：各 `skills/*/SKILL.md` 统一六段：用途 / 何时用 / 输入 / 步骤 / 护栏 / 产出物。细则仍 `Read` 该包 `prompts/`。根文件只做路由，不套这六段。

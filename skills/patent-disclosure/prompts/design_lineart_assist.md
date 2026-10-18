@@ -60,7 +60,8 @@ python skills/patent-disclosure/tools/design_lineart_gate.py \
 1. 有 `reference_images`：先图生图。宿主不能图生图或失败 → 对每张参考图写可见细节到 `lineart_assist/{视}_describe.md`，再文生图。  
 2. 无参考图：按 `gen_prompt` + AppearanceSchema 文生图。  
 3. 不要写死某一家出图工具名。  
-4. 输出写到 `output_path`；宿主不能指定路径则复制过去。
+4. 输出写到 `output_path`；宿主不能指定路径则复制过去。  
+5. 具体执行（后端、样图门、job、读图 QA、登记）见 `prompts/figure_generation.md`：`figure_jobs.py prepare --from-lineart-jobs outputs/{案件}/lineart_assist/design_lineart_jobs.json`，QA 过后 `record`。
 
 ### 4. 回写 figure_plan
 
