@@ -10,6 +10,8 @@ sources:
     name: computer-use MCP 桌面控制（真人浏览器）
     notes: |
       默认主途径（Google Patents 连不上 / 遇瑞数 WAF / 验证码、或需下国知局单行本全文时亦用）。
+      前置：用户须先自行登录其国知局账户（单行本下载需登录态；技能不代登录、不接触/不保存
+      凭据），登录态保留在用户浏览器会话。
       用 windows-computer-use MCP 操作本机 Chrome/Edge：导航 epub.cnipa.gov.cn/patent/{pub}
       （或 Google Patents 详情页），点击「单行本」/下载链接，过人机验证后保存 PDF 到
       outputs/patent_reader/${RUN}/source/{pub}.pdf。真人浏览器可过 WAF/验证码，不受服务端接口

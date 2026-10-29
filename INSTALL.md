@@ -156,7 +156,7 @@ python skills/patent-search/tools/cnipa_search.py --inventor "发明人姓名" \
 
 **下载全文 PDF**：公布公告站**著录检索**只出清单，**不直接下全文**。全文 PDF 下载走两条途径之一（见 `skills/patent-reader/references/patent_pdf_sources.yaml`）：
 
-- **① computer-use MCP 桌面控制**（优先；Google Patents 连不上 / 遇瑞数 WAF / 验证码 / 需国知局单行本时亦用）：用真人浏览器（Chrome/Edge）在 `epub.cnipa.gov.cn/patent/{pub}` 或 Google Patents 详情页导航，点「单行本」/下载链接、过验证码后保存 PDF。真人浏览器可过 WAF，不受服务端接口不稳定限制。
+- **① computer-use MCP 桌面控制**（优先；Google Patents 连不上 / 遇瑞数 WAF / 验证码 / 需国知局单行本时亦用）：**前置——用户须先自行登录其国知局账户**（单行本下载需登录态；技能不代登录、不接触/不保存凭据），登录态保留在用户浏览器会话。用真人浏览器（Chrome/Edge）在 `epub.cnipa.gov.cn/patent/{pub}` 或 Google Patents 详情页导航，点「单行本」/下载链接、过验证码后保存 PDF。真人浏览器可过 WAF，不受服务端接口不稳定限制。
 - **② 技能脚本** `skills/patent-reader/tools/extract/fetch_patent_pdf.py`（备选，Google Patents 页 → CDN，快，常规件）。
 
 **合规**：专利全文 PDF 为**法定公开信息**；真人浏览器 GUI 逐篇下载属**正常人工访问**（比 headless 脚本更接近人工、更合规），过验证码是真人输入、非绕过技术措施。请**保持人工节奏、控制单次数量，勿自动化批量抓取**；下载件仅限**个人研究与内部流程**，勿再分发/转售/商业建库，商业用途走官方/授权渠道；不绕过登录/付费访问控制（付费/账号库不在默认链路，见 `patent_pdf_sources.yaml`）。
