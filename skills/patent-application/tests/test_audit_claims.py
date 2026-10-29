@@ -78,5 +78,32 @@ class AuditClaimsTests(unittest.TestCase):
         self.assertTrue(any(item.code == "NO_REFERENCE" for item in audit(text)))
 
 
+MULTI_REF = """
+1. 一种方法，其特征在于包括采集。
+2. 根据权利要求1所述的方法，其特征在于所述采集为周期采集。
+3. 根据权利要求1或2所述的方法，其特征在于还包括去噪。
+4. 根据权利要求1、2或3所述的方法，其特征在于输出CSV。
+5. 根据权利要求1至4中任一项所述的方法，其特征在于按批次写盘。
+"""
+
+
+class ReferenceParsingTests(unittest.TestCase):
+    def test_multi_reference_expands(self) -> None:
+        claims = dict.fromkeys(range(1, 6))
+        codes_texts = audit(MULTI_REF)
+        forward = [item for item in codes_texts if item.code == "FORWARD_REFERENCE"]
+        self.assertEqual(forward, [], msg=[(item.claim, item.message) for item in forward])
+        missing = [item for item in codes_texts if item.code == "MISSING_REFERENCE"]
+        self.assertEqual(missing, [])
+
+    def test_multi_reference_forward_detected(self) -> None:
+        text = (
+            "1. 一种方法，其特征在于包括采集。\n"
+            "2. 根据权利要求1或3所述的方法，其特征在于还包括去噪。\n"
+        )
+        codes = {item.code for item in audit(text)}
+        self.assertIn("FORWARD_REFERENCE", codes)
+
+
 if __name__ == "__main__":
     unittest.main()

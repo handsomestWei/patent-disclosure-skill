@@ -210,6 +210,12 @@
 
 ---
 
+## 使用边界与合规
+
+本技能为**内部工作底稿辅助**，不构成法律意见，不做新颖性/创造性/授权结论。**在中国，代为撰写专利申请文件、代为办理专利申请、代为答复审查意见等属专利代理业务**，须由依法设立的专利代理机构及取得执业证的专利代理师办理（《专利代理条例》第 9、24 条）；无资质主体以本技能产出对外提交或替他人办理，可能承担行政责任。建议：交底书可自行完成或交给代理师；**申请文件四件套与审查答复稿应经有资质专利代理师复核后使用**。著录检索/解读/对照表仅用公开专利信息，限个人研究与内部流程；遵守目标站点使用条款，勿高频/批量商业抓取。案例库默认脱敏。
+
+---
+
 ## 参考文档
 
 - [技能入口与 Agent 流程](SKILL.md)（交底 / 申请文件 / 案卷会稿 / 著录检索 / 解读 / 政策简报 / 审查答复）
@@ -220,6 +226,6 @@
 
 <div align="center">
 
-MIT License © [handsomestWei](https://github.com/handsomestWei/)
+MIT License © [handsomestWei](https://github.com/handsomestWei/)。本仓库基于其 [patent-disclosure-skill](https://github.com/handsomestWei/patent-disclosure-skill)，完整保留上游版权与许可声明；本次新增内容（`patent-application` / `patent-chart` 等子包与合规边界表述）以贡献形式并入，改造记录见 [docs/CONTRIB-changes.md](docs/CONTRIB-changes.md)。
 
 </div>

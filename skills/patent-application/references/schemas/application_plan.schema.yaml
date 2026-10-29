@@ -11,6 +11,7 @@ problem: ""              # 技术问题一句
 means: ""                # 相互配合的手段一句
 effect: ""               # 具体效果一句，避免「性能优异」
 principal_claim: ""      # 独立权项保护对象，如 一种…方法 / 一种…装置
+claim_style: numbered    # numbered（独权「步骤1，…」编号，默认）| unnumbered（独权分号连接不编号，实施例 S1）
 fallback: []             # 拟写入从属的要点（须能在交底找到）
 open_questions: []       # 只进问题清单，不进正式权要
 suggested_abstract_figure: ""  # 图 2 / 主流程图
@@ -18,7 +19,7 @@ claim_tree:
   independent:
     - id: 1
       kind: method       # method | system | product
-      essential: []      # 必要技术特征短句；方法与步骤一…同序
+      essential: []      # 必要技术特征短句；编号式与「步骤1…」同序，unnumbered 为权1特征句
   dependents:
     - id: 2
       refers: [1]

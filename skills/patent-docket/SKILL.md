@@ -56,6 +56,7 @@ python skills/patent-docket/tools/emit_tracker.py --yaml outputs/docket/案件sl
 
 - 细则 `prompts/guardrails.md`。本包只改 `outputs/docket/`。
 - **禁止**为销问题清单条目而编造结构、参数、步骤、查新命中。
+- **合规边界**：案卷会稿调度出的申请文件与答复稿为**内部底稿**；代为撰写申请文件、代为答复审查意见属专利代理业务，递交前应经有资质专利代理师复核，本包不替代代理机构，不构成法律意见。
 
 ## 产出物
 

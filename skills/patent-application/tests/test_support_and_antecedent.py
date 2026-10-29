@@ -108,5 +108,76 @@ figures:
             self.assertNotIn("MODULE_MISSING_SPEC", codes)
 
 
+class ClaimStyleTests(unittest.TestCase):
+    def _case(self, tmp: str, claim1: str, style: str | None) -> list[str]:
+        import json as _json
+
+        root = Path(tmp)
+        (root / "figures").mkdir()
+        (root / "权利要求书.md").write_text(claim1, encoding="utf-8")
+        (root / "说明书.md").write_text("图1为流程示意。\n", encoding="utf-8")
+        (root / "figures" / "invention_figures.yaml").write_text("figures: []\n", encoding="utf-8")
+        (root / "说明书摘要.md").write_text("本发明涉及调度。不足。手段。效果。", encoding="utf-8")
+        plan: dict = {"$schema": "application_plan", "version": 1}
+        if style:
+            plan["claim_style"] = style
+        (root / "application_plan.json").write_text(_json.dumps(plan, ensure_ascii=False), encoding="utf-8")
+        return [item.code for item in audit_dir(root)]
+
+    def test_style_numbered_requires_step_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            codes = self._case(raw, "1. 一种方法，其特征在于包括采集；输出。\n", "numbered")
+            self.assertIn("CLAIM_STYLE_MISMATCH", codes)
+
+    def test_style_unnumbered_rejects_steps(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            codes = self._case(raw, "1. 一种方法，其特征在于包括如下步骤：步骤1，采集。\n", "unnumbered")
+            self.assertIn("CLAIM_STYLE_MISMATCH", codes)
+
+    def test_style_numbered_with_steps_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            codes = self._case(raw, "1. 一种方法，其特征在于包括如下步骤：步骤1，采集。\n", "numbered")
+            self.assertNotIn("CLAIM_STYLE_MISMATCH", codes)
+
+    def test_numbered_style_unnumbered_claim_and_flow_warns_without_style(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            (root / "figures").mkdir()
+            (root / "权利要求书.md").write_text("1. 一种方法，其特征在于包括采集；输出。\n", encoding="utf-8")
+            (root / "说明书.md").write_text("图1为流程示意。\n", encoding="utf-8")
+            (root / "figures" / "invention_figures.yaml").write_text(
+                "figures:\n  - fig: 1\n    kind: flowchart\n    nodes:\n      - {id: s1, label: \"步骤1，采集\"}\n",
+                encoding="utf-8",
+            )
+            (root / "说明书摘要.md").write_text("本发明涉及调度。", encoding="utf-8")
+            codes = [item.code for item in audit_dir(root)]
+            self.assertIn("STEP_STYLE_UNVERIFIED", codes)
+
+
+class CaseDirSchemaTests(unittest.TestCase):
+    def test_case_dir_schema_cross_check_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as raw, tempfile.TemporaryDirectory() as raw_case:
+            root = Path(raw)
+            case = Path(raw_case)
+            (root / "figures").mkdir()
+            (root / "权利要求书.md").write_text(
+                "1. 一种装置，其特征在于包括壳体（10）和端盖（20）。\n", encoding="utf-8"
+            )
+            (root / "说明书.md").write_text("壳体（10）连端盖（20）。\n", encoding="utf-8")
+            (root / "说明书摘要.md").write_text("本实用新型涉及壳体。", encoding="utf-8")
+            (root / "figures" / "invention_figures.yaml").write_text("figures: []\n", encoding="utf-8")
+            (root / "件号登记表.yaml").write_text(
+                "parts:\n  - {id: '10', name: 壳体, figures: []}\n  - {id: '20', name: 端盖, figures: []}\n",
+                encoding="utf-8",
+            )
+            (case / "structure_schema.yaml").write_text(
+                "parts:\n  - {id: '10', name: 壳体}\n  - {id: '30', name: 支架}\n",
+                encoding="utf-8",
+            )
+            codes = [item.code for item in audit_dir(root, case_dir=case)]
+            self.assertIn("SCHEMA_MISSING", codes)
+            self.assertIn("REGISTER_EXTRA", codes)
+
+
 if __name__ == "__main__":
     unittest.main()

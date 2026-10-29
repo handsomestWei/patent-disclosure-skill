@@ -82,7 +82,16 @@ python skills/patent-reader/tools/patent_type.py --pub <公开号>
 
 实用 / 外观 → 按 `type_hooks.md` 填 Schema（**有公开号即应自动触发**，勿等用户口头说类型）。
 
-失败时按报错处理，不要编造 PDF 直链：「未收录」（新公开专利尚未上 Google）或「连不上」（检查网络后重试一次）→ 请用户提供 PDF。全文只走 Google Patents，正常 3 秒内完成；不要改走国知局下全文。
+失败时按报错处理，不要编造 PDF 直链：「未收录」（新公开专利尚未上 Google）或「连不上」（检查网络后重试一次）。
+
+**下载途径（二选一，见 `references/patent_pdf_sources.yaml`）**：
+
+- **① computer-use MCP 桌面控制**（优先；脚本连不上 / 遇瑞数 WAF、验证码、或需下国知局单行本时亦用）：用真人浏览器（Chrome/Edge）在桌面上导航、点击「单行本」/下载链接、过验证码后保存 PDF，再 `extract_patent_text.py`。可下国知局公布站全文（`epub.cnipa.gov.cn/patent/{pub}`），不受服务端接口不稳定限制；Google Patents 连不上时也走此途。
+  - **逐篇操作序列、输入法/清空/间隔/点击频次踩坑、出错查验与求助**：见 **`references/gui_download_cnipa.md`**（2026-10 实测批量 21 篇成功沉淀；**全部走 windows-computer-use MCP**，原 pi-computer-use ref 工具已卸载）。
+  - **合规**：全文 PDF 为法定公开信息，真人 GUI 下载属正常人工访问，过验证码为真人输入、非绕过技术措施。保持人工节奏、控制单次数量，勿自动化批量；仅限个人研究与内部流程，勿再分发/商业建库，不绕过登录/付费访问控制。
+- **② 技能脚本** `fetch_patent_pdf.py`（备选，快）：Google Patents 详情页 → CDN，正常 3 秒内完成；适合公开号已被 Google 收录、无 WAF/验证码的常规件。
+
+仍失败才请用户提供 PDF。脚本与 MCP 均失败时，先报告再问用户，不要只报「连不上」就默认无 PDF。
 
 **对照表派工**：取证成功后只跑 `extract_patent_text.py`，校对权要树，写出 `claim_features.json`（含从权）和 `description_paragraphs.json`，把路径交回对照表。不写通俗笔记，不入库，不裁附图，不写技术功效。
 

@@ -152,6 +152,17 @@ python skills/patent-search/tools/cnipa_search.py --inventor "发明人姓名" \
 
 检索结果落到 `outputs/patent-search/SEARCH-*.md`（版式在 `skills/patent-search/tools/emit_search_report.py`），并打印 `EPUB_SEARCH_MD` / `EPUB_SEARCH_JSON`。只有 `complete: true` 才表示已翻到末页；退出码 `3` 表示部分结果，禁止据此声称“全部”。普通查询不要默认 `--complete`。
 
+**合规**：公布公告站为公开政府信息，脚本已内置礼貌访问（约 800ms 页间延迟、本机浏览器 UA、跨会话冷却）。请遵守目标站使用条款与 robots，**限个人研究与低频使用，勿高频/批量商业抓取**；遇验证码/WAF 时用真人浏览器（computer-use MCP）按正常人工访问处理。
+
+**下载全文 PDF**：公布公告站**著录检索**只出清单，**不直接下全文**。全文 PDF 下载走两条途径之一（见 `skills/patent-reader/references/patent_pdf_sources.yaml`）：
+
+- **① computer-use MCP 桌面控制**（优先；Google Patents 连不上 / 遇瑞数 WAF / 验证码 / 需国知局单行本时亦用）：用真人浏览器（Chrome/Edge）在 `epub.cnipa.gov.cn/patent/{pub}` 或 Google Patents 详情页导航，点「单行本」/下载链接、过验证码后保存 PDF。真人浏览器可过 WAF，不受服务端接口不稳定限制。
+- **② 技能脚本** `skills/patent-reader/tools/extract/fetch_patent_pdf.py`（备选，Google Patents 页 → CDN，快，常规件）。
+
+**合规**：专利全文 PDF 为**法定公开信息**；真人浏览器 GUI 逐篇下载属**正常人工访问**（比 headless 脚本更接近人工、更合规），过验证码是真人输入、非绕过技术措施。请**保持人工节奏、控制单次数量，勿自动化批量抓取**；下载件仅限**个人研究与内部流程**，勿再分发/转售/商业建库，商业用途走官方/授权渠道；不绕过登录/付费访问控制（付费/账号库不在默认链路，见 `patent_pdf_sources.yaml`）。
+
+仍失败才请用户提供 PDF。
+
 **Windows 终端**：定稿 / 查新脚本会把 stdout、stderr 设为 UTF-8，子进程带 `PYTHONUTF8=1`。Agent **以退出码和机读前缀为准**（`EPUB_HITS_JSON:`、`EPUB_SEARCH_JSON:`、`PROBE:`、`MERMAID:`、`DOCX:`、`MATH:`）；stderr 有中文或 PowerShell `NativeCommandError` **不等于**失败。不必先 `chcp 65001`。若仍乱码，可设 **`PYTHONUTF8=1`**，且不要用 **`2>&1`** 把 JSON 混进错误流。
 
 **Windows 终端**：定稿 / 查新脚本会把 stdout、stderr 设为 UTF-8，子进程带 `PYTHONUTF8=1`。Agent **以退出码和机读前缀为准**（`EPUB_HITS_JSON:`、`PROBE:`、`MERMAID:`、`DOCX:`、`MATH:`）；stderr 有中文或 PowerShell `NativeCommandError` **不等于**失败。不必先 `chcp 65001`。若仍乱码，可设 **`PYTHONUTF8=1`**，且不要用 **`2>&1`** 把 JSON 混进错误流。
@@ -168,11 +179,11 @@ python skills/patent-application/tools/render_invention_figures.py \
   --plan outputs/patent-application/{案}/figures/invention_figures.yaml \
   --out-dir outputs/patent-application/{案}/figures
 python skills/patent-application/tools/audit_claims.py outputs/patent-application/{案}/权利要求书.md
-python skills/patent-application/tools/check_support.py --dir outputs/patent-application/{案}
+python skills/patent-application/tools/check_support.py --dir outputs/patent-application/{案} --case-dir outputs/{案件}
 python skills/patent-application/tools/emit_application_docx.py --dir outputs/patent-application/{案}
 ```
 
-缺材料时门禁退出码为 2，应先回到交底技能补齐。细则见 [skills/patent-application/SKILL.md](skills/patent-application/SKILL.md)。
+缺材料时门禁退出码为 2，应先回到交底技能补齐。细则见 [skills/patent-application/SKILL.md](skills/patent-application/SKILL.md)。**合规**：本包产出为内部撰写底稿；代为撰写专利申请文件属专利代理业务，递交前应经有资质专利代理师复核（详见根 `README.md`「使用边界与合规」）。
 
 ## 可选：案卷会稿（须显式）
 
@@ -184,7 +195,7 @@ python skills/patent-docket/tools/validate_docket.py --yaml outputs/docket/{案�
 python skills/patent-docket/tools/emit_tracker.py --yaml outputs/docket/{案件slug}/docket.yaml
 ```
 
-产物在 `outputs/docket/{案件}/`（`docket.yaml` + `TRACKER.md`），机读前缀 `DOCKET_DIR:` / `DOCKET_YAML:` / `DOCKET_OK:` / `DOCKET_ERROR:`。细则见 [skills/patent-docket/SKILL.md](skills/patent-docket/SKILL.md)。
+产物在 `outputs/docket/{案件}/`（`docket.yaml` + `TRACKER.md`），机读前缀 `DOCKET_DIR:` / `DOCKET_YAML:` / `DOCKET_OK:` / `DOCKET_ERROR:`。细则见 [skills/patent-docket/SKILL.md](skills/patent-docket/SKILL.md)。**合规**：案卷会稿调度的申请文件/答复稿为内部底稿，递交前应经有资质专利代理师复核，不替代代理机构。
 
 ## 可选：审查答复案例库（默认关闭）
 
@@ -204,7 +215,7 @@ python skills/patent-oa/tools/search_cases.py --query "创造性 区别特征" -
 # python skills/patent-oa/tools/emit_opinion_docx.py -i outputs/oa/案/意见陈述_时间戳.md
 ```
 
-Obsidian 案例落在 `{vault}/oa/cases/history/`（另有 `pending/`、`drafts/`）。与主依赖**独立**。细则见 `skills/patent-oa/prompts/`、`skills/patent-oa/tools/README.md`、[skills/patent-oa/SKILL.md](skills/patent-oa/SKILL.md)。
+Obsidian 案例落在 `{vault}/oa/cases/history/`（另有 `pending/`、`drafts/`）。与主依赖**独立**。细则见 `skills/patent-oa/prompts/`、`skills/patent-oa/tools/README.md`、[skills/patent-oa/SKILL.md](skills/patent-oa/SKILL.md)。**合规**：意见陈述为内部草稿，代为答复审查意见属专利代理业务，递交前应经有资质专利代理师复核；案例入库默认脱敏。
 
 ## 强烈建议：专利通俗解读 + Obsidian 库
 

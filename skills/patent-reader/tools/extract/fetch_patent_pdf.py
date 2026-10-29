@@ -4,11 +4,14 @@
 
 默认链路（见 references/patent_pdf_sources.yaml）：
   1) 用户已给本地 PDF / --url → 直接用
-  2) Google Patents 详情页 zh / en / 无后缀三页并行，读到 citation_pdf_url 即断开 → CDN 下载
-  3) 已知示例 CDN（仅兜底）
-  4) 仍失败：请用户提供 PDF
+  2) 优先 computer-use MCP 桌面控制（真人浏览器，可下国知局单行本、过 WAF/验证码；Google Patents 连不上时亦用）
+  3) 技能脚本：Google Patents 详情页 zh / en / 无后缀三页并行，读到 citation_pdf_url 即断开 → CDN 下载
+  4) 已知示例 CDN（仅兜底）
+  5) 仍失败：请用户提供 PDF
 
-不走国知局公布站：其单行本接口服务端常超时，见源表 unstable_or_skip。
+脚本默认不走国知局公布站（其单行本接口服务端常超时，见源表 unstable_or_skip）；
+国知局单行本全文一律用 computer-use MCP 桌面控制（见源表 computer_use_mcp），
+不要在脚本里加国知局链路。
 外观设计（CN…S）Google 多无 PDF，改用 fetch_design_views.py。
 
 用法：

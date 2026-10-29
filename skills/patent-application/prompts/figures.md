@@ -9,10 +9,11 @@
 | 种类 | `kind` | 标号 |
 |------|--------|------|
 | 系统框图 | `block_diagram` | 虚线分组 + 框内模块名；**不**标（10）（20），**不**拉引出线。各列按自身模块数自上而下紧排，不要把较少模块的一列撑成与邻列相同槽位数 |
-| 方法流程图 | `flowchart` | 框内写「步骤一…」，与独权同序同义；**不**拉引出线，**不**用 S1、201 |
+| 方法流程图 | `flowchart` | 框内写法随 `claim_style`：编号式「步骤1…」与独权同序逐字同义；不编号式为独权特征句本身。**不**拉引出线，**不**标 201 |
+| 交底升格图 | `lineart` / `section` / `exploded` / `multi_state` | 仅当交底 `figure_plan` 有对应入文线稿/实拍：跑本包 `compose_application_figure.py` 升格为黑白（实用新型件号规则见下）。无源图则 `source: pending` 记问题清单，禁止凭权要语言空画 |
 | 点名示意图 | `source_image` | 用户点名或交底已入文的场景/拓扑/对照图；`source` 为源文件；**不**重画楼层剖面 |
 
-主流程图框数与方法独权步骤数一致。分支、回环写在从属和实施例，不要在独权图上另编步骤。
+主流程图框数与方法独权步骤数一致（不编号式为特征数一致）。分支、回环写在从属和实施例，不要在独权主流程图上另编步骤。
 
 摘要附图：主流程图（`abstract: true`）。点名场景图不当摘要附图，除非用户指定。
 
@@ -28,16 +29,16 @@
 
 写入 `application_plan.yaml` 的 `named_figures`。
 
-## 实用新型升格
+## 实用新型升格 / 发明交底升格
 
-交底线稿不得原样充当申请附图。对 `figure_plan` 中 `use_in_disclosure: true` 的 **lineart**：
+交底入文图（线稿、剖视、爆炸、多状态、实拍）不得原样充当申请附图。对 `figure_plan` 中 `use_in_disclosure: true` 的对应条目（**实用新型与发明同管线**）：
 
 ```bash
 python skills/patent-application/tools/compose_application_figure.py \
   --source <交底线稿.png或.svg> --fig N --out-dir <产出>/figures
 ```
 
-要求：黑白、按内容裁切、图号只在正文；件号与 `structure_schema.parts` / 权要同一张表（交底 overlay 已有件号则保留，不要另编）。CAD、实拍不升格入申请附图。
+要求：黑白、按内容裁切、图号只在正文；实用新型件号与 `structure_schema.parts` / 权要同一张表（交底 overlay 已有件号则保留，不要另编）；发明框图/流程图不标件号、不拉引出线。CAD、实拍不升格入外观申请视图（外观另走 design_application.md）。
 
 ## 外观
 

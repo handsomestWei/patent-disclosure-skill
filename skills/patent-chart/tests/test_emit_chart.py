@@ -14,7 +14,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from emit_chart import (
     DISCLAIMER,
     chart_xlsx_name,
-    dump_yaml,
     main,
     normalize_chart,
     render_chart_md,
@@ -82,11 +81,26 @@ class EmitChartTests(unittest.TestCase):
         self.assertIn("对应：", text)
         self.assertNotIn("对上了", text)
 
-    def test_yaml_dump_features(self) -> None:
-        y = dump_yaml(normalize_chart(_payload()))
-        self.assertIn("feature_id: F1", y)
-        self.assertIn("scene: invalidity", y)
-        self.assertIn("id: H1", y)
+    def test_md_optional_via_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            payload = Path(tmp) / "p.json"
+            payload.write_text(json.dumps(_payload()), encoding="utf-8")
+            out = Path(tmp) / "预览.md"
+            code = main(
+                [
+                    "--json",
+                    str(payload),
+                    "--into",
+                    str(Path(tmp) / "sess"),
+                    "--md",
+                    str(out),
+                ]
+            )
+            self.assertEqual(code, 0)
+            text = out.read_text(encoding="utf-8")
+            self.assertIn("不构成法律意见", text)
+            self.assertIn("F3 × D1", text)
+            self.assertNotIn("应当无效", text)
 
     def test_bundle_xlsx_drilldown(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -7,7 +7,7 @@
 | `plan_figures.py` | `APPLICATION_FIG_PLAN:` | 0 无 ERROR；1 有 ERROR |
 | `check_numeral_register.py` | `APPLICATION_NUMERALS:` | 0 无 ERROR；1 有 ERROR |
 | `render_invention_figures.py` | `APPLICATION_FIG:` | 0 已出 SVG；PNG 失败不单独当致命（看 png_fail） |
-| `check_support.py` | `APPLICATION_SUPPORT:` | 0 无 ERROR；1 有 ERROR |
+| `check_support.py` | `APPLICATION_SUPPORT:` | 0 无 ERROR；1 有 ERROR（`--case-dir <交底>` 时连交底 `structure_schema` 交叉核对件号） |
 | `compose_application_figure.py` | `APPLICATION_FIG:` | 0 已出 SVG（PNG 看 png=）；**仅实用新型 / 发明点名图**；外观禁用 |
 | `iteration_dialog_log.py` | `LOG_FILE=` | 0 已追加 |
 | `check_design_views.py` | `VIEW_CHECK:` | 0 已写清单（不合格不挡交付） |

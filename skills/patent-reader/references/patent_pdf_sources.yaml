@@ -1,10 +1,29 @@
 # 专利全文 PDF 取证源（本包 fetch_patent_pdf.py 使用）
-# 全文只走 Google Patents；国知局 epub 仅核验著录。priority 越小越优先。
+# 下载途径二选一：① computer-use MCP 桌面控制（真人浏览器，可下国知局单行本，见下方 computer_use_mcp，优先）；② 技能脚本走 Google Patents（下方 sources）。
+# 国知局 epub 仅核验著录；全文下载优先 MCP（Google Patents 连不上/遇 WAF/验证码亦走 MCP），MCP 失败/常规件才转脚本。priority 越小越优先。
 
 sources:
+  - id: computer_use_mcp
+    priority: 5
+    role: primary_download
+    status: proven
+    name: computer-use MCP 桌面控制（真人浏览器）
+    notes: |
+      默认主途径（Google Patents 连不上 / 遇瑞数 WAF / 验证码、或需下国知局单行本全文时亦用）。
+      用 windows-computer-use MCP 操作本机 Chrome/Edge：导航 epub.cnipa.gov.cn/patent/{pub}
+      （或 Google Patents 详情页），点击「单行本」/下载链接，过人机验证后保存 PDF 到
+      outputs/patent_reader/${RUN}/source/{pub}.pdf。真人浏览器可过 WAF/验证码，不受服务端接口
+      不稳定限制。之后仍走 extract_patent_text.py。
+      逐篇操作序列 + 踩坑（输入法乱码/检索框残留/公开号点击/文献浏览不刷新/下载图标位置/
+      等待与点击频次/出错查验与求助）：见 references/gui_download_cnipa.md（实测 21 篇成功；
+      全部走 windows-computer-use MCP，原 pi-computer-use ref 工具已卸载）。
+      合规：全文 PDF 为法定公开信息，真人浏览器 GUI 下载属正常人工访问（过验证码为真人
+      输入、非绕过技术措施）；保持人工节奏、控制单次数量，勿自动化批量；仅限个人研究与
+      内部流程，勿再分发/转售/商业建库，商业用途走官方/授权渠道；不绕过登录/付费访问控制。
+
   - id: google_patents_page
     priority: 10
-    role: primary
+    role: secondary
     status: proven
     name: Google Patents 详情页
     page_templates:
@@ -38,7 +57,7 @@ sources:
       只核验公开号、标题、摘要、申请人；不提供全文 PDF（见 unstable_or_skip.cnipa_epub_fulltext）。
 
   - id: user_local_pdf
-    priority: 5
+    priority: 10
     role: override
     status: proven
     name: 用户本地 PDF / 已下载文件
@@ -58,10 +77,11 @@ unstable_or_skip:
   - id: cnipa_epub_fulltext
     status: server_unreliable
     notes: |
-      2026-09 实测放弃。详情页单行本按钮 POST /Sw/SwDetail，服务端约 10 秒后回 400
+      2026-09 实测放弃（脚本）。详情页单行本按钮 POST /Sw/SwDetail，服务端约 10 秒后回 400
       （无头 / 有界面、GET / POST 皆然，偶发成功）；成功页里 egaz /filedl 下载需算术验证码，
       验证通过后仍 400 / 502。/showPage 只给逐页 PNG（无文字层），/imgs/.../TEMPSWF 仅预生成前 3 页。
       另有瑞数 WAF，须真浏览器，单次 20 秒以上。
+      脚本不再尝试；如确需国知局单行本全文，改走 computer_use_mcp 真人浏览器桌面控制。
   - id: drugfuture_cnpat
     status: captcha
     notes: drugfuture.com 中国专利下载须图片验证码，底层仍是国知局数据。

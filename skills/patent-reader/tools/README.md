@@ -58,7 +58,8 @@ pip install -r skills/patent-reader/tools/requirements.txt
 # 先探测库路径（强烈推荐已装 Obsidian 并开库）
 python skills/patent-reader/tools/vault/check_obsidian_env.py --auto-accept
 
-# 仅公开号：先下载 PDF（Google Patents 页 → CDN；见 patent_pdf_sources.yaml）
+# 仅公开号：先下载 PDF（二选一：computer-use MCP 桌面控制优先；或技能脚本走 Google Patents 页 → CDN，见 patent_pdf_sources.yaml）
+#   · MCP 逐篇操作序列与踩坑（输入法/清空/间隔/点击频次/出错查验/求助）见 references/gui_download_cnipa.md（全部走 windows-computer-use MCP）
 python skills/patent-reader/tools/extract/fetch_patent_pdf.py \
   --pub CN119961390A -o outputs/patent_reader/demo
 

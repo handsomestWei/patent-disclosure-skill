@@ -33,7 +33,7 @@ ALLOWED_KINDS = (
 RENDERABLE = {"flowchart", "block_diagram", "lineart", "source_image"}
 
 KIND_RULES: list[tuple[str, tuple[str, ...], str]] = (
-    ("flowchart", (r"包括以下步骤", r"步骤[一二三四五六七八九十百零\d]+"), "独权按步骤展开"),
+    ("flowchart", (r"包括以下步骤", r"包括如下步骤", r"步骤[一二三四五六七八九十百零\d]+"), "独权按步骤展开"),
     ("block_diagram", (r"模块", r"单元", r"处理器", r"存储器"), "权要写了模块/单元"),
     ("section", (r"剖视", r"内设", r"内部设有", r"腔体", r"壳体内"), "权要写到内部构造"),
     ("exploded", (r"可拆卸", r"分解", r"依次套设", r"从.{0,12}拆"), "权要写到拆装/套设"),
@@ -173,7 +173,9 @@ def suggest_figures(
     extra = [item for item in hits if item["kind"] not in disclosed_kinds]
     merged = list(disclosed)
     for item in extra:
-        if item["kind"] not in RENDERABLE and patent_type == "utility_model":
+        # 剖视 / 爆炸 / 多状态等脚本不可渲染：交底有可升格路径则保留，否则挂 pending
+        # （发明与实用新型同口径；禁止凭权要语言空画内部结构）。
+        if item["kind"] not in RENDERABLE and not str(item.get("path") or ""):
             item = dict(item)
             item["source"] = "pending"
         merged.append(item)

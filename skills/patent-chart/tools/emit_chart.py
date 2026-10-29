@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""对照表落盘：对照表-{场景}-{时间戳}.xlsx 主交付 + chart.json 底稿。不出 yaml/md，不出 html 工作面、不出 docx。"""
+"""对照表落盘：对照表-{场景}-{时间戳}.xlsx 主交付 + chart.json 底稿。不出 yaml、不出 html 工作面 / docx；Markdown 预览仅 --md 显式请求。"""
 from __future__ import annotations
 
 import argparse
@@ -83,53 +83,6 @@ def default_output_dir(start: Path | None = None) -> Path:
         if (parent / ".git").exists() or (parent / "outputs").is_dir():
             return parent / "outputs" / "patent-chart"
     return Path.cwd() / "outputs" / "patent-chart"
-
-
-def _yaml_scalar(value: Any) -> str:
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return str(value)
-    text = str(value)
-    if text == "":
-        return '""'
-    if any(c in text for c in ":#{}[]&*?|>'!%@,") or "\n" in text or text.strip() != text:
-        escaped = text.replace("\\", "\\\\").replace('"', '\\"')
-        return f'"{escaped}"'
-    return text
-
-
-def dump_yaml(obj: Any, indent: int = 0) -> str:
-    pad = "  " * indent
-    if isinstance(obj, dict):
-        if not obj:
-            return pad + "{}\n"
-        chunks: list[str] = []
-        for key, val in obj.items():
-            if isinstance(val, (dict, list)):
-                chunks.append(f"{pad}{key}:\n{dump_yaml(val, indent + 1)}")
-            else:
-                chunks.append(f"{pad}{key}: {_yaml_scalar(val)}\n")
-        return "".join(chunks)
-    if isinstance(obj, list):
-        if not obj:
-            return pad + "[]\n"
-        chunks = []
-        for item in obj:
-            if isinstance(item, dict):
-                inner = dump_yaml(item, indent + 1)
-                first, _, rest = inner.partition("\n")
-                chunks.append(f"{pad}- {first.lstrip()}")
-                if rest:
-                    chunks.append("\n" + rest if not rest.startswith("\n") else rest)
-                    if not rest.endswith("\n"):
-                        chunks.append("\n")
-            else:
-                chunks.append(f"{pad}- {_yaml_scalar(item)}\n")
-        return "".join(chunks)
-    return pad + _yaml_scalar(obj) + "\n"
 
 
 def _list_str(value: Any) -> list[str]:
@@ -1102,11 +1055,15 @@ def _load(path: Path) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    ap = argparse.ArgumentParser(description="写出对照表 xlsx + json")
+    ap = argparse.ArgumentParser(description="写出对照表 xlsx + json（预览 md 仅 --md 请求）")
     ap.add_argument("--json", required=True, help="chart JSON")
     ap.add_argument("--output-dir", help="默认 outputs/patent-chart")
     ap.add_argument("--case-id", default="chart")
     ap.add_argument("--into", help="写入该会话目录（与 intake.json 同层）")
+    ap.add_argument(
+        "--md",
+        help="可选：额外写出 Markdown 预览（Obsidian 阅读/归档用，主交付仍是 xlsx）",
+    )
     args = ap.parse_args(argv)
     try:
         raw = _load(Path(args.json))
@@ -1119,6 +1076,11 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
+    if args.md:
+        md_path = Path(args.md)
+        md_path.parent.mkdir(parents=True, exist_ok=True)
+        md_path.write_text(render_chart_md(normalize_chart(raw)), encoding="utf-8")
+        print(f"CHART_MD: {md_path}", flush=True)
     print(f"CHART_DIR: {paths['dir']}", flush=True)
     print(f"CHART_XLSX: {paths['xlsx']}", flush=True)
     print(f"CHART_JSON: {paths['json']}", flush=True)

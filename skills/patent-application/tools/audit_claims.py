@@ -23,10 +23,9 @@ from stdio_utf8 import ensure_utf8_stdio
 from lexicon import promo_pattern
 
 CLAIM_START = re.compile(r"(?m)^\s*(\d+)\s*[.、．]\s*")
-REFERENCE = re.compile(
-    r"权利要求\s*(\d+)(?:\s*[-—~～至]\s*(\d+))?"
-    r"|权利要求\s*(\d+)\s*(?:或|、)\s*(\d+)"
-)
+REFERENCE = re.compile(r"权利要求\s*\d+(?:\s*(?:或|、|[-—~～]|至)\s*\d+)*")
+_REF_NUM = re.compile(r"\d+")
+_REF_RANGE = re.compile(r"[-—~～]|至")
 TERM_INTRO = re.compile(r"(?:所述|该)([\u4e00-\u9fffA-Za-z][\u4e00-\u9fffA-Za-z0-9_-]{1,20})")
 PLACEHOLDER = re.compile(r"\[(?:TO CONFIRM|待确认)[^\]]*\]", re.IGNORECASE)
 INDEPENDENT_OPEN = re.compile(r"^一种.{0,60}(方法|系统|装置|设备)")
@@ -51,14 +50,20 @@ def split_claims(text: str) -> list[tuple[int, str]]:
 
 
 def references(body: str) -> list[int]:
+    """引用权号：「权利要求1」「权利要求1或2」「权利要求1、2或3」「权利要求1-3」均展开。"""
     result: list[int] = []
     for match in REFERENCE.finditer(body):
-        if match.group(1):
-            start = int(match.group(1))
-            finish = int(match.group(2) or start)
-            result.extend(range(start, finish + 1))
+        phrase = match.group(0)
+        nums = _REF_NUM.findall(phrase)
+        if not nums:
+            continue
+        start = int(nums[0])
+        if len(nums) == 1:
+            result.append(start)
+        elif _REF_RANGE.search(phrase):
+            result.extend(range(start, int(nums[-1]) + 1))
         else:
-            result.extend((int(match.group(3)), int(match.group(4))))
+            result.extend(int(n) for n in nums)
     return sorted(set(result))
 
 

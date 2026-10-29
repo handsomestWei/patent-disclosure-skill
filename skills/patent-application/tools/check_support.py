@@ -121,7 +121,7 @@ def _abstract_plain(text: str) -> str:
     return text
 
 
-def audit_dir(root: Path) -> list[Finding]:
+def audit_dir(root: Path, *, case_dir: Path | None = None) -> list[Finding]:
     findings: list[Finding] = []
     claims_path = root / "权利要求书.md"
     spec_path = root / "说明书.md"
@@ -141,7 +141,37 @@ def audit_dir(root: Path) -> list[Finding]:
     claim1 = claims.get(1, "")
     plan = _load_plan(plan_path) if plan_path.is_file() else {}
 
+    # 权要写法两式择优（application_plan.claim_style）：numbered=独权步骤N编号；
+    # unnumbered=独权分号连接不编号、实施例 S1。声明与正文不一致时报错。
+    claim_style = ""
+    app_plan_path = root / "application_plan.yaml"
+    if not app_plan_path.is_file():
+        app_plan_path = root / "application_plan.yml"
+    if not app_plan_path.is_file():
+        app_plan_path = root / "application_plan.json"
+    if app_plan_path.is_file():
+        try:
+            app_plan_meta = _load_plan(app_plan_path)
+        except (OSError, ValueError, json.JSONDecodeError):
+            app_plan_meta = {}
+        claim_style = str(app_plan_meta.get("claim_style") or "").strip().lower()
     claim_steps = _step_map(claim1)
+    if claim_style == "numbered" and not claim_steps:
+        findings.append(
+            Finding(
+                "ERROR",
+                "CLAIM_STYLE_MISMATCH",
+                "application_plan 记 claim_style=numbered，但独权未见「步骤N」编号。",
+            )
+        )
+    if claim_style == "unnumbered" and claim_steps:
+        findings.append(
+            Finding(
+                "ERROR",
+                "CLAIM_STYLE_MISMATCH",
+                "application_plan 记 claim_style=unnumbered，但独权出现了「步骤N」编号。",
+            )
+        )
     flow_steps = _flowchart_step_map(plan)
     if claim_steps and flow_steps:
         if list(claim_steps.keys()) != list(flow_steps.keys()):
@@ -166,6 +196,15 @@ def audit_dir(root: Path) -> list[Finding]:
     elif claim_steps and not flow_steps and plan.get("figures"):
         findings.append(
             Finding("WARNING", "NO_FLOW_STEPS", "独权有步骤一…，流程图节点未检出步骤标签。")
+        )
+    elif flow_steps and not claim_steps and not claim_style:
+        findings.append(
+            Finding(
+                "WARNING",
+                "STEP_STYLE_UNVERIFIED",
+                "独权未用「步骤N」编号（不编号式），流程图却带步骤标签；独权与图无法机械对照，"
+                "人工核同义后在 application_plan 记 claim_style。",
+            )
         )
 
     sys_claim = _first_independent_system(claims)
@@ -236,9 +275,13 @@ def audit_dir(root: Path) -> list[Finding]:
                 findings.append(
                     Finding("ERROR", "FIG_PLAN_MISSING", f"figure_plan 图{fig}（{kind}）未写入 invention_figures 也未出图。")
                 )
-            if kind == "lineart" and not has_file:
+            elif kind not in {"flowchart", "block_diagram", "source_image"} and not has_file:
                 findings.append(
-                    Finding("WARNING", "FIG_PLAN_MISSING", f"figure_plan 图{fig} 线稿尚未升格出图。")
+                    Finding(
+                        "WARNING",
+                        "FIG_PLAN_MISSING",
+                        f"figure_plan 图{fig}（{kind}）尚未按交底线稿升格出图；无源图则改记 pending。",
+                    )
                 )
 
     register_path = None
@@ -248,11 +291,14 @@ def audit_dir(root: Path) -> list[Finding]:
             register_path = cand
             break
     if register_path is not None:
-        schema_path = None
-        for name in ("structure_schema.yaml", "structure_schema.yml", "structure_schema.json"):
-            cand = root / name
-            if cand.is_file():
-                schema_path = cand
+        schema = None
+        for search_root in ([case_dir] if case_dir else []) + [root]:
+            for name in ("structure_schema.yaml", "structure_schema.yml", "structure_schema.json"):
+                cand = search_root / name
+                if cand.is_file():
+                    schema = _load_register(cand)
+                    break
+            if schema is not None:
                 break
         fig_plan_path = app_plan_path if app_plan_path.is_file() else None
         if fig_plan_path is None:
@@ -262,7 +308,6 @@ def audit_dir(root: Path) -> list[Finding]:
                     fig_plan_path = cand
                     break
         register = _load_register(register_path)
-        schema = _load_register(schema_path) if schema_path else None
         fig_plan = _load_register(fig_plan_path) if fig_plan_path else None
         if fig_plan is not None:
             for item in fig_plan.get("figures") or []:
@@ -283,6 +328,12 @@ def main() -> int:
     ensure_utf8_stdio()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dir", required=True, type=Path)
+    parser.add_argument(
+        "--case-dir",
+        type=Path,
+        default=None,
+        help="同案交底目录；实用新型传入后，件号登记表会与其 structure_schema 交叉核对",
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     root = args.dir.expanduser().resolve()
@@ -290,7 +341,12 @@ def main() -> int:
         print("APPLICATION_SUPPORT: ok=0 errors=1 warnings=0")
         print(f"目录不存在：{root}", file=sys.stderr)
         return 1
-    findings = audit_dir(root)
+    case_dir = args.case_dir.expanduser().resolve() if args.case_dir else None
+    if case_dir is not None and not case_dir.is_dir():
+        print("APPLICATION_SUPPORT: ok=0 errors=1 warnings=0")
+        print(f"交底目录不存在：{case_dir}", file=sys.stderr)
+        return 1
+    findings = audit_dir(root, case_dir=case_dir)
     errors, warnings = summarize(findings)
     ok = errors == 0
     numeral_codes = {
