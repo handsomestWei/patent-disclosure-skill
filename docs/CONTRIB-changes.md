@@ -21,7 +21,7 @@
 - **专利代理业务资质**：根 `SKILL.md`「合规边界」节 + `README.md`「使用边界与合规」+ `patent-application` / `patent-oa` / `patent-docket` 三包护栏——在中国，代为撰写申请文件、代为办理申请、代为答复审查意见属专利代理业务（《专利代理条例》第 9、24 条），须由有执业许可的代理机构及执业证代理师办理；本技能产出为内部底稿，递交前应经有资质代理师复核。
 - **vendored mermaid 许可**：随包新增 `vendor/LICENSE.mermaid`（MermaidJS MIT 全文），`vendor/README.md` 补许可证段——满足 MIT 再分发要求。
 - **国知局礼貌访问**：`cnipa_crawler.py` 内置约 800ms 页间延迟、本机浏览器 UA、跨会话冷却；`INSTALL.md` 加合规提示（限个人研究与低频、勿高频/批量商业抓取）。
-- **GUI 下载全文 PDF**：`patent_pdf_sources.yaml` / `gui_download_cnipa.md` / `patent_plain_reader.md` / `INSTALL.md` / 根 `SKILL.md` 五处一致口径——专利全文为法定公开信息，真人浏览器 GUI 下载属正常人工访问（过验证码为真人输入、非绕过技术措施）；保持人工节奏、控制单次数量、勿自动化批量；仅限个人研究与内部流程，勿再分发/商业建库，不绕过登录/付费访问控制（付费/账号库已排除在默认链路外）。
+- **GUI 下载全文 PDF**：`patent_pdf_sources.yaml` / `gui_download_cnipa.md` / `patent_plain_reader.md` / `INSTALL.md` / 根 `SKILL.md` 五处一致口径——专利全文为法定公开信息，真人浏览器 GUI 下载属正常人工访问（过验证码为真人输入、非绕过技术措施）；保持人工节奏、控制单次数量、勿自动化批量；仅限个人研究与内部流程，勿再分发/商业建库，不绕过登录/付费访问控制（付费/账号库已排除在默认链路外）；**下载前置**——用户须先自行登录其国知局账户（单行本下载需登录态），技能不代登录、不接触/不保存凭据，登录态保留在用户浏览器会话，登录完成后技能才接管 GUI 操作。
 
 ## 三、校验豁口修复
 
