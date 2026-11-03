@@ -457,7 +457,21 @@ def test_feature_callout_dedupes_clue_and_distills() -> None:
 
 
 def test_feature_callout_drops_orphan_fids() -> None:
-    """第六节只有特征名、无 F 编号时：丢弃 sidecar 空号 F1–F6，改挂表内名称。"""
+    """第六节只有特征名、无 F 编号时：丢弃 sidecar 空号 F1–F6，改挂表内名称。
+
+    样例要靠「水性 ↔ 水系」同义词才对得上，按领域配置同义词的场景：测试内注入隔膜领域词条。
+    """
+    import vault.clues.matching as matching
+
+    saved = matching.FEATURE_SYNONYMS
+    matching.FEATURE_SYNONYMS = {"水性": ("水性", "水系", "水基"), "油性": ("油性", "油系", "油基")}
+    try:
+        _check_orphan_fids_dropped()
+    finally:
+        matching.FEATURE_SYNONYMS = saved
+
+
+def _check_orphan_fids_dropped() -> None:
     from vault.clue_vault import inject_clue_annotations, match_clue_to_note
 
     note = _note(

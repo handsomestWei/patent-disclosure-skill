@@ -3,7 +3,7 @@
 为专利通俗解读生成「技术落地线索」包（零付费 API）：
   - 专利内：实施例、背景、术语
   - 离线：IPC 行业坐标（references/ipc_application_hints.yaml）
-  - WebSearch 查询模板（供 Agent 执行）
+  - WebSearch 查询模板（供 Agent 执行）；海外文献只给事实（search_plan），检索词由 Agent 推断
   - Obsidian 导航建议
 
 用法：
@@ -39,6 +39,7 @@ except ImportError:
         runtime_config,
         slugify_pub,
     )
+from patent_type import infer_jurisdiction
 
 
 def load_json(path: Path) -> dict:
@@ -73,6 +74,7 @@ def build_web_search_queries(
     ipc_hint: dict,
     claim_keywords: list[str],
 ) -> list[dict]:
+    """中国文献的中文检索模板。"""
     queries: list[dict] = []
     assignee = assignees[0] if assignees else ""
     kw = " ".join(claim_keywords[:3]) if claim_keywords else title_hint[:40]
@@ -115,6 +117,26 @@ def build_web_search_queries(
         }
     )
     return queries[:6]
+
+
+def overseas_search_plan(jurisdiction: str, manifest: dict, bundle: dict, abstract: str) -> dict:
+    """海外文献：只整理事实，市场、申请人所在国与检索词由 Agent 按提示词推断后填 queries。"""
+    claims = bundle.get("claims") or []
+    first = next((c for c in claims if c.get("is_independent")), claims[0] if claims else {})
+    return {
+        "status": "agent_todo",
+        "facts": {
+            "jurisdiction": jurisdiction,
+            "assignees": manifest.get("assignees") or bundle.get("assignees") or [],
+            "title": manifest.get("invention_title") or bundle.get("invention_title") or "",
+            "translated_from": manifest.get("translated_from") or "",
+            "cpc": (manifest.get("ipc_codes") or [])[:5],
+            "abstract": abstract[:400],
+            "claim_1": (first.get("text") or "")[:400],
+            "claim_1_original": (first.get("text_original") or "")[:300],
+        },
+        "queries": [],
+    }
 
 
 def claim_keyword_tokens(bundle: dict) -> list[str]:
@@ -192,12 +214,25 @@ def main(argv: list[str] | None = None) -> int:
     text_for_match = abstract + "\n" + " ".join(bundle.get("background_snippets") or [])
 
     ipc_hint = resolve_ipc_hints(text_for_match, ipc_codes)
-    domain = resolve_domain(text_for_match, ipc_codes[0] if ipc_codes else "")
+    domain = "未分类"
+    for code in ipc_codes or [""]:
+        domain = resolve_domain(text_for_match, code)
+        if domain != "未分类":
+            break
     claim_kw = claim_keyword_tokens(bundle)
     cfg = runtime_config()
 
+    jurisdiction = (manifest.get("jurisdiction") or infer_jurisdiction(pub) or "CN").upper()
+    overseas = jurisdiction != "CN"
+    queries = (
+        []
+        if overseas
+        else build_web_search_queries(pub, assignees, abstract[:80], ipc_hint, claim_kw)
+    )
+
     anchor = {
         "pub_number": pub,
+        "jurisdiction": jurisdiction,
         "domain": domain,
         "assignees": assignees,
         "ipc_codes": ipc_codes,
@@ -213,9 +248,7 @@ def main(argv: list[str] | None = None) -> int:
             "typical_modules": ipc_hint.get("typical_modules") or [],
             "user_scenarios": ipc_hint.get("user_scenarios") or [],
         },
-        "web_search_queries": build_web_search_queries(
-            pub, assignees, abstract[:80], ipc_hint, claim_kw
-        ),
+        "web_search_queries": queries,
         "obsidian": obsidian_navigation(domain, pub, cfg),
         "writing_guide": {
             "section_9": "九、技术应用场景：必须锚定 desc_id/实施例/背景句，标置信度「高」",
@@ -224,11 +257,16 @@ def main(argv: list[str] | None = None) -> int:
             "forbidden": "不得将推测线索写入主结论章节（一至八）",
         },
     }
+    if overseas:
+        anchor["search_plan"] = overseas_search_plan(jurisdiction, manifest, bundle, abstract)
 
     out_path = Path(args.output) if args.output else workdir / "context_anchor.json"
     out_path.write_text(json.dumps(anchor, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print(f"OK domain={domain} ipc={ipc_hint.get('ipc_prefix')} queries={len(anchor['web_search_queries'])}")
+    print(
+        f"OK domain={domain} ipc={ipc_hint.get('ipc_prefix')} queries={len(queries)} "
+        f"jurisdiction={jurisdiction}" + (" search_plan=agent_todo" if overseas else "")
+    )
     print(f"CONTEXT_ANCHOR: {out_path}")
     return 0
 

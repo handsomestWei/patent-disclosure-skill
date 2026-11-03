@@ -279,7 +279,18 @@ python skills/patent-reader/tools/analyze/validate_claim_features.py \
 
 ### 第 2 步：公开检索 → 充实 `public_clues.json`（Agent 主路径）
 
-对 `context_anchor.json` → `web_search_queries` 执行 **WebSearch**（或国知局脚本）得到候选后：
+对 `context_anchor.json` → `web_search_queries` 执行 **WebSearch**（中国专利可用国知局脚本）得到候选。
+
+**海外公开号**：线索包不生成检索词，只在 `search_plan.facts` 给出局别、申请人、名称、CPC、摘要和第一条独立权要（机翻件附原文）。由你推断后，把检索词写进 `search_plan.queries`（每条含 `query` / `group` / `region` / `lang` / `purpose`），`status` 改为 `done`，再执行：
+
+- **本国市场**（`group: market`）：按局别判断专利面向的市场与当地语言（如 JP → 日本 / 日文；EP → 欧洲，以英文为主；WO 没有单一市场，跟随申请人所在国）。检索词用当地语言的技术词；当地网站有国家域名时加 `site:`。
+- **申请人所在国**（`group: applicant_home`）：读申请人名称和说明书判断；与本国市场语言不同才补一组，判不准就不补。日韩文献里的片假名、韩文公司名常是外国公司音译，不能单凭文字判国别。
+- 检索词取本案技术词（英文或原文），不整句照抄权要；每组 1～2 条，申请人名加引号。
+- 不用国知局脚本；「同申请人其他专利」需要时提示用户走检索包海外检索，本步不发请求。
+- 每条线索把命中它的检索词的 `group` / `region` / `lang` 写成 `region_group` / `region` / `lang`（`lang` 写中文，如「日文」）；两组以外偶然搜到的其他地区页面写 `region_group: "other"`，筛选时只保留置信度「高」的。
+- 外文页面：`summary` 用中文写要点；`anchor_fits` 的 `fit` 可在中文后附一句原文短句。
+
+得到候选后：
 
 1. **先**跑校验+筛选（置信度高→低，**默认最多 3 条**）：
 

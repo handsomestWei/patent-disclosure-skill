@@ -1,0 +1,60 @@
+# 全文抽取词表：著录字段标签、权利要求句式、机构名提示词。
+# 由 tools/shared/text_vocab.py 读取；改词表只动本文件，不必改代码。
+# 字段标签按顺序尝试；含空格的标签匹配时允许任意空白（日期标签除外，按原样匹配）。
+
+# 从属权利要求的引用句式（出现任一即判为从属权）
+dependent_claim_patterns:
+  - 根据权利要求
+  - 如权利要求
+  - 按照权利要求
+  - 按权利要求
+  - 依据权利要求
+  - according to claim
+  - of claim
+
+# 独立权利要求常见开头（命中即判为独立权，优先于上面的从属句式）
+independent_claim_starts:
+  - 一种
+  - 一種
+  - "a "
+  - "an "
+
+# 申请人 / 专利权人标签（先中文后英文）
+assignee_labels:
+  zh: [申请人, 申请单位, 专利权人]
+  en: [Applicant, Assignee]
+
+# 发明人 / 设计人标签（先中文后英文）
+inventor_labels:
+  zh: [发明人, 设计人]
+  en: [Inventors, Inventor]
+
+application_number_labels: [申请号, Application Number]
+
+title_labels: [发明名称, 实用新型名称, 外观设计名称, Title]
+
+filing_date_labels: [申请日, Filing Date, 申请日期]
+
+publication_date_labels: [公开日, 公布日, 授权公告日, Publication Date]
+
+# 申请人名称含下列任一词即视为机构（不区分大小写）
+org_hints:
+  - 公司
+  - 大学
+  - 学院
+  - 研究所
+  - 研究院
+  - 集团
+  - 有限
+  - 株式会社
+  - 医院
+  - 厂
+  - 事务所
+  - 中心
+  - 实验室
+  - Inc
+  - Ltd
+  - LLC
+  - GmbH
+  - Corp
+  - University

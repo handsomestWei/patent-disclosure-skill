@@ -3,6 +3,7 @@
 校验并筛选 Agent 生成的 public_clues.json（附录 B 线索）。
 
 默认按置信度高→低排序后最多保留 3 条；可用 --max 调整，--no-filter 关闭筛选。
+线索带 region_group 时本国市场 / 申请人所在国优先，其他地区（other）只保留置信度「高」的。
 
 用法：
   python skills/patent-reader/tools/analyze/validate_public_clues.py -i public_clues.json [-o public_clues.lint.json]
@@ -42,6 +43,7 @@ except ImportError:
     )
 
 ALLOWED_CONF = {"高", "中", "低", "high", "medium", "low", "med", "mid"}
+ALLOWED_REGION_GROUPS = {"market", "applicant_home", "other"}
 
 
 def validate_clues(clues: list[dict]) -> dict:
@@ -83,6 +85,11 @@ def validate_clues(clues: list[dict]) -> dict:
         status = (c.get("status") or "").strip()
         if not summary and status not in ("fetch_failed",):
             warnings.append(f"{prefix}:missing_summary_agent_should_fetch")
+        group = (c.get("region_group") or "").strip()
+        if group and group not in ALLOWED_REGION_GROUPS:
+            warnings.append(f"{prefix}:unknown_region_group:{group}")
+        if group and not (c.get("region") or "").strip():
+            warnings.append(f"{prefix}:region_group_without_region")
 
     return {
         "passed": len(issues) == 0,

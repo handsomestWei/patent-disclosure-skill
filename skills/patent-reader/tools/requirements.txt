@@ -1,2 +1,5 @@
-# Optional PDF deps for skills/patent-reader/tools/
+# Deps for skills/patent-reader/tools/
+# PyYAML: references/*.yaml (vocab, domain rules, IPC hints)
+# pymupdf: PDF text / figures
+PyYAML>=6.0
 pymupdf>=1.24.0

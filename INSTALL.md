@@ -231,7 +231,7 @@ $env:PATENT_READER_GLOSSARY_DIR = "Research/术语"
 ```
 
 ```bash
-pip install -r skills/patent-reader/tools/requirements.txt   # PDF：pymupdf
+pip install -r skills/patent-reader/tools/requirements.txt   # PyYAML + PDF：pymupdf
 pip install -r skills/patent-map/tools/requirements.txt     # 可选：专利地图语义地形（fastembed，不含 PyTorch）
 ```
 
