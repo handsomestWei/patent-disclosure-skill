@@ -48,7 +48,7 @@ python skills/patent-disclosure/tools/structure_lineart_compose.py \
   --case-dir "outputs/{案件标识}" --prepare-jobs
 ```
 
-对 jobs 里缺文件的件：按 `image_gen.md` **只画该一件**（白底、黑白结构线、无件号、无邻件）。写入 `image_path`（默认 `lineart_assist/parts/{视}_{id}.png`）。禁止一张图里塞全套零件再假装「单件」。
+对 jobs 里缺文件的件：按 `image_gen.md` **只画该一件**（白底、黑白结构线、无件号、无邻件）。执行按 `prompts/figure_generation.md`：`figure_jobs.py prepare --from-lineart-jobs outputs/{案件标识}/lineart_assist/structure_lineart_compose_jobs.json`。写入 `image_path`（默认 `lineart_assist/parts/{视}_{id}.png`）。禁止一张图里塞全套零件再假装「单件」。
 
 ### 3. 拼装
 

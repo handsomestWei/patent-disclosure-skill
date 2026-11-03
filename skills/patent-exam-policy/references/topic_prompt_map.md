@@ -19,7 +19,7 @@
 | 局部外观与GUI、图形用户界面 | `skills/patent-disclosure/prompts/design/patent_points.md`、`design/disclosure_builder.md`、`fill_appearance_schema.md`、`design_lineart_assist.md` |
 | 相似外观、成套/合案 | `skills/patent-disclosure/prompts/design/patent_points.md`、`design/disclosure_builder.md` |
 | 专利法与实施细则（书式、期限、客体） | `skills/patent-disclosure/prompts/invention/disclosure_builder.md`、`utility_model/disclosure_builder.md`、`design/disclosure_builder.md`、`disclosure_self_check.md` |
-| 附图、件号、figure_plan、线稿 | `skills/patent-disclosure/prompts/image_gen.md`、`fill_structure_schema.md`、`fill_appearance_schema.md`、`structure_lineart_assist.md`、`design_lineart_assist.md`、`references/schemas/figure_plan.schema.yaml` |
+| 附图、件号、figure_plan、线稿 | `skills/patent-disclosure/prompts/image_gen.md`、`figure_generation.md`、`fill_structure_schema.md`、`fill_appearance_schema.md`、`structure_lineart_assist.md`、`design_lineart_assist.md`、`references/schemas/figure_plan.schema.yaml` |
 | 降低套话、书式与代理人可读 | `skills/patent-disclosure/prompts/invention/disclosure_builder.md`、`skills/patent-disclosure/prompts/disclosure_preview.md` |
 | 迭代合并 / 纠正与另存 | `skills/patent-disclosure/prompts/merger.md`、`correction_handler.md`、`iteration_context.md` |
 | 交底包入口、类型默认 | `skills/patent-disclosure/SKILL.md`、`prompts/intake.md` |

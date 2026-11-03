@@ -27,6 +27,7 @@ user-invocable: false
 | Step 2 | `prompts/project_scan.md`；有 `.tex` 再 `Read prompts/tex_scan.md` |
 | Step 3–4 | `prompts/invention/` · `utility_model/` · `design/` 挖点 |
 | 填表 / 线稿 | `prompts/fill_*`、`image_gen.md`、`*_lineart_*.md`；外观视图口径 `references/design_view_cnipa.md`；外观成文前 `tools/check_design_views.py`；结构案成文前 `tools/check_source_parts.py` |
+| 出图 | 交底所有绘制类附图（3.2 框图 / 3.4 流程图 / 线稿 / 件号）出第一张图前 `Read` `prompts/figure_generation.md`：定后端 → 样图 → 一图一 job → 读图 QA → 登记；失败回退本地渲染 |
 | Step 5 | `prompts/prior_art_search.md`（轻量查新：3～4 个手段短语，公布模式每页 10 条，LLM 摘要精排） |
 | Step 5.5 | 同文件「**D1 锁定与区别特征 Fk**」：主比对钉一篇最接近 + 逐特征表（可 D2 补行）+ **三态门禁**，落 `查新与区别定位_*.md`。三态都进 Step 6；**不过**仍成文但创造性降级 |
 | Step 6 | `prompts/disclosure_preview.md` |
@@ -54,4 +55,4 @@ python skills/patent-disclosure/tools/fence/check_scorecard.py -i outputs/{案�
 
 ## 产出物
 
-交底书 Markdown + Word，查新与区别定位稿，可选 schema / 线稿 / 公式图；围栏在 `outputs/{案件}/fence/`。对话末块标题 **交付后请确认**。
+交底书 Markdown + Word，查新与区别定位稿，可选 schema / 线稿 / 公式图（生图登记见 `figure_jobs.json`）；围栏在 `outputs/{案件}/fence/`。对话末块标题 **交付后请确认**。

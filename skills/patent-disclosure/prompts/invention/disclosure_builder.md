@@ -79,6 +79,7 @@ Agent **落盘时**即采用上述命名，并在回复中写明路径，便于�
 
 - **系统框图与流程图**均仅用 **fenced mermaid**（`mermaid_render.py` 经 Playwright 出 PNG，不依赖 Node/mmdc 或外网 PlantUML）；Word 中以 PNG 为准，**无需**再附 ASCII 文字框图
 - mermaid 内节点标签用**场景短词**（中文/数字），避免 ①②③；**用标题里的领域对象**，不要换成更空的上位词。可另写简短「流程说明」段落概括各步，**不得**用 ASCII 框线箭头代替图示。实现细节（校验值、序号、租约字段等）放正文，不要堆进节点标签。
+- **生图**：出图后端不是 `local` 时，先按 `prompts/figure_generation.md` 对草稿跑 `figure_jobs.py prepare --from-md`，逐块出图、读图 QA、`record`。定稿时 `mermaid_render.py` 加 `--ai-figures outputs/{案件标识}/figure_jobs.json`：已登记的块用生成图，其余照旧本地渲染。mermaid 围栏仍是结构规格，**照写不省**。
 - **步骤号必须写进可见标签**。节点 id（`S1`）**不会**出现在 PNG 上。正确：`S1["S1 采集节点指标"]`、`S5{"S5 是否达阈"}`。错误：`S1[采集节点指标]`（出图只剩中文、序号丢失）。定稿时 `mermaid_render.py` 会把缺失序号补进标签再出图；成文时仍须按正确写法写，勿依赖脚本补救。
 
 ### 用户点名的场景 / 示意图
@@ -143,7 +144,7 @@ Agent **落盘时**即采用上述命名，并在回复中写明路径，便于�
 1. **Markdown**：定稿 `.md` **保留** `` ```mermaid`` 围栏源码；能出图时含 ``<!-- ![图示](…png) -->`` 注释引用（由 `mermaid_render.py` 生成）。
 2. **Word**：对上一文件执行 `md_to_docx.py`，或使用一条命令。有序列表按 Markdown 分组从 1 重计，勿手工改 Word 编号去「接上一章」。
 
-`python tools/mermaid_render.py -i <含图示的草稿.md> -o "<案件名_YYYYMMDDHHmmss>.md"`（默认在同目录生成**同名** `.docx`；可用 `--docx` 指定路径，`--no-docx` 跳过 Word。Word 失败时见终端提示的手动命令。默认不预渲染公式 PNG，不安装 matplotlib。）
+`python tools/mermaid_render.py -i <含图示的草稿.md> -o "<案件名_YYYYMMDDHHmmss>.md"`（默认在同目录生成**同名** `.docx`；可用 `--docx` 指定路径，`--no-docx` 跳过 Word。出图后端不是 `local` 时加 `--ai-figures outputs/{案件标识}/figure_jobs.json`，见 §7.4「生图」。Word 失败时见终端提示的手动命令。默认不预渲染公式 PNG，不安装 matplotlib。）
 
 （mermaid 出图：Playwright + 内置 `tools/vendor/mermaid.min.js`，与查新共用浏览器，见 `tools/browser.py`。`--probe` 显示本机无 Chrome/Edge 且无自带 Chromium 时，才允许一次 `playwright install chromium`。无可用浏览器时仍交付 .md；Word 可生成但框图可能为代码块，告知用户补浏览器后可重跑本脚本。）
 

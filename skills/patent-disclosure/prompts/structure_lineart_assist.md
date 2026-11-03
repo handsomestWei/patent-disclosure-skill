@@ -52,13 +52,14 @@ python skills/patent-disclosure/tools/structure_lineart_gate.py \
 
 对每一 job：
 
-1. **轮廓层**（`mode` 不是 `existing_lineart` 时）：按 `image_gen.md` 图生图或「先描述再文生图」或文生图，写入 `output_path`。已有合格线稿则用原图当本视轮廓。  
+1. **轮廓层**（`mode` 不是 `existing_lineart` 时）：按 `image_gen.md` 图生图或「先描述再文生图」或文生图，写入 `output_path`。已有合格线稿则用原图当本视轮廓。执行按 `prompts/figure_generation.md`：`figure_jobs.py prepare --from-lineart-jobs outputs/{案件标识}/lineart_assist/structure_lineart_jobs.json --with-callouts`。  
 2. **按件拼装（必做）**：**`Read`** `prompts/structure_lineart_compose.md`。按 `parts` 写 `structure_lineart_compose.yaml`（每件一个槽位），跑 `structure_lineart_compose.py`：每件落 `lineart_assist/parts/{视}_{id}.svg`，总图 `*_composed.svg` 相对引用子文件。总装用 `crop`（子文件裁总装 PNG，隔离弱）；爆炸/分件用每件小图 `image`（仅 schema 已分开的可分离件，须先有单件图）。不要把整图 base64+clip 进总 SVG，也不要把一件再拆成筋/齿/螺栓。  
 3. **锚点定位**（`callout_mode: overlay`）：大模型读取**拼装后的图**（优先 composed SVG 的预览，或无号轮廓），逐个定位 job `callouts` 对应部件；把归一化 `anchor`、附近**图外留白** `label`、`confidence` 持久化到案件目录 `structure_callout_anchors.yaml`。合同见 `references/schemas/structure_callout_anchors.schema.yaml`。该视填写 `base_svg_path` 指向 composed SVG。
 
    - **`anchor`**：引出线末端，必须落在**该件可见墨线**上（轮廓或剖面线），禁止停在空腔、孔洞内部或背景白底。
    - **`label`**：序号数字必须在整图**外轮廓之外**的留白里，禁止压在实体、剖面线、内腔或孔内；不要用 crop 窗的角点当序号位置（窗里往往仍是剖面线）。
    - 序号围绕结构就近分散，禁止全部排到画布同一条边；多条线从不同方向引出。
+   **生图件号（后端不是 `local` 时先试）**：锚点写好后，用 `callout_{视}` job 以轮廓图为输入改图，只加件号与引出线，prompt 带上锚点坐标与 parts 表。读图核对下面第 5 步各项，**另加一条：轮廓与输入图不一致即不过**。一次不过就 `figure_jobs.py block` 后走第 4 步 overlay，**不要**反复改图纠号。通过则 `record`，跳过第 4 步，仍做第 5 步语义自查。
 4. **精确叠标**：运行：
 
 ```bash

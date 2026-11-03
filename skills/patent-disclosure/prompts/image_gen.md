@@ -72,4 +72,6 @@ CAD 投影进 figure_plan 后**重评分**，再跑本脚本；有合格线稿�
 
 不要写死某一家出图工具名。
 
+**怎么出图**：按 `prompts/figure_generation.md` 执行（定后端、样图、一图一 job、读图 QA、登记）。门禁 jobs 写出后用 `figure_jobs.py prepare --from-lineart-jobs` 建 job。CLI 后端对有参考图的 job 走 `image_api.py` 的 edit，即真正的图生图；只有 edit 也不可用时，才走上面的 `describe_then_txt2img`。后端为 `local`（无生图能力）时，线稿无本地等价物，按上文在交付里说明缺图。
+
 **外观生成规格**（途经 2）：`gen_prompt` 与画布直接对准 `design_view_cnipa.md`（正投影或正确立体图、各视比例一致、禁尺寸线/中心线/阴影线、图内无图号/视图名、JPEG、不超过 150mm×220mm、72–300 DPI）。不要先出草稿留给申请文件加工。
