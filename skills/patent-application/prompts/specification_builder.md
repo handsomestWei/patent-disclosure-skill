@@ -4,6 +4,8 @@
 
 材料出处见 `references/disclosure_to_spec_map.md`。从属层与「第一种/第二种」实施例对齐，见 `claim_strategy.md`。
 
+发明分案先按 `divisional.md` 核实原始申请，并在「技术领域」前写原申请说明段落。
+
 ## 五部分
 
 | 部分 | 写法 |
