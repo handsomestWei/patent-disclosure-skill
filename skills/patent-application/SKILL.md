@@ -1,6 +1,6 @@
 ---
 name: patent-application
-description: "申请文件：把已有交底写成权利要求书、说明书、摘要与说明书附图。须指定交底目录；仅缺材料才终止。内容争议写入问题清单，不阻塞主文件。交付后请确认须摘要清单。已有产出上改稿则另存新时间戳目录。须显式触发。"
+description: "申请文件：把已有交底写成权利要求书、说明书、摘要与说明书附图；规划发明母案与分案并核对原始披露。四件套须指定交底目录。内容争议写入问题清单，交付后请确认须摘要清单。已有产出上改稿则另存新时间戳目录。须显式触发。"
 user-invocable: false
 ---
 
@@ -12,16 +12,16 @@ user-invocable: false
 
 ## 何时用
 
-须用户点名（申请文件 / 申请底稿 / 申报材料 / 权利要求书 / `/申请底稿` / `/patent-apply`），并**指定交底材料目录**。案卷会稿调度本包时视为已点名，仍须有交底目录。
+须用户点名（申请文件 / 申请底稿 / 申报材料 / 权利要求书 / `/申请底稿` / `/patent-apply`，或发明母案与分案的规划、撰写或核验）。写四件套须**指定交底材料目录**。案卷会稿调度本包时视为已点名，仍须有交底目录。
 
 ## 输入
 
-同案交底产出：交底书（时间戳 `.md`，有则兼用 `.docx`）；发明用正文（框图/流程在 mermaid 里）；实用新型用 `structure_schema` + `figure_plan` + 入文线稿；外观用 `appearance_schema` + `figure_plan` + 入文实拍/线稿。仅**缺文件**时终止。发明人/申请人未填只记清单，不终止、不挡案卷轮次。
+四件套使用同案交底产出：交底书（时间戳 `.md`，有则兼用 `.docx`）；发明用正文（框图/流程在 mermaid 里）；实用新型用 `structure_schema` + `figure_plan` + 入文线稿；外观用 `appearance_schema` + `figure_plan` + 入文实拍/线稿。发明人/申请人未填只记清单，不终止、不挡案卷轮次。发明分案的补充材料见 `prompts/divisional.md`。
 
 ## 步骤
 
-1. **`Read`** `prompts/guardrails.md` → `intake.md`
-2. 已有申请产出上改稿（未要求整案重写）：**`Read`** `iteration_context.md` → `iteration.md`（新时间戳目录、出 Word、问题清单），到此结束
+1. **`Read`** `prompts/guardrails.md` → `intake.md`。发明分案按 `divisional.md` 决定本轮交付。只交规划或核对稿时到此结束；只写交底时转发明交底流程。
+2. 已有申请产出上改稿（未要求整案重写）：**`Read`** `iteration_context.md`；若为发明分案，按 `divisional.md` 核对本轮改动，支持不足时仅交核对稿。材料支持改动时按 `iteration.md` 另存新稿，到此结束
 3. 跑 `tools/material_gate.py --case-dir <交底目录>`；退出码 2 则停
 4. 发明 / 实用新型：`claim_strategy.md` → `claims_builder.md` → `figure_plan.md` → `figures.md` → `specification_builder.md` → `numeral_register.md` → `consistency.md`
 5. 外观：先 `Read` `references/design_view_cnipa.md`，只走 `design_application.md`；跑本包 `check_design_views.py`
@@ -36,3 +36,5 @@ user-invocable: false
 ## 产出物
 
 `outputs/patent-application/{案件标识}_{时间戳}/`：四件套（Markdown + Word + 黑白图）+ 旁路 `问题清单.md`（外观另有 `视图检查清单.md`）。对话末块标题 **交付后请确认**。
+
+发明分案按 `prompts/divisional.md` 先交规划或核对结果，再按用户要求及材料情况进入四件套。

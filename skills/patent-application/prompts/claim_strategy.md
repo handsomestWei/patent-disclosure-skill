@@ -2,6 +2,8 @@
 
 先写一句话：`问题 → 手段 → 效果`。材料只来自交底。交底没写的不要补进独立权项。
 
+发明以 AI 模型或智能体参与技术处理时，先 **`Read`** `ai_implementation.md`，核对交底能支撑的输入、处理和输出关系。
+
 **读交底第五章的 5.1 / 5.2**：已按删除测试分好 **5.1 必要技术特征**（带 Fk 编号与「对应 3.x / Sx / Mx / 式 (n)」）与 **5.2 优选特征**。独立权项取 **5.1**，从属树取 **5.2**，**不要**重新自行判断必要性。
 
 落盘 `application_plan.yaml`（合同见 `references/schemas/application_plan.schema.yaml`）。`open_questions` 只进问题清单。
