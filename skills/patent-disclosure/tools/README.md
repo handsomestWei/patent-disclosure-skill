@@ -1,6 +1,6 @@
 # 交底包 tools
 
-本目录是 **patent-disclosure** 的脚本根：浏览器、docx、mermaid、公式、CAD、线稿，以及 `crawl/` 轻量查新、`fence/` 保护型 1+N。
+本目录是 **patent-disclosure** 的脚本根：浏览器、docx、mermaid、公式、CAD、线稿、出图后端，以及 `crawl/` 轻量查新、`fence/` 保护型 1+N。
 
 整仓安装时从仓库根调用：`python skills/patent-disclosure/tools/…`。单独拷走本包时，本目录即为 `tools/`。
 
@@ -120,7 +120,32 @@ python tools/structure_lineart_compose.py --case-dir outputs/case
 python tools/structure_callout_overlay.py --case-dir outputs/case --anchors outputs/case/structure_callout_anchors.yaml
 ```
 
-推荐：轮廓之后按件写出子 SVG 再拼总图，再 `callout_mode: overlay` 注入件号。大模型只定位，Python/SVG 叠标，不做含件号的二次生图。叠标后须读图按 `parts` 名称核对引出线（改 YAML 重叠标，最多 2 轮）；脚本合法 ≠ 图面对。禁止自创件号；CAD 投影不是线稿。可编辑源是 `parts/*.svg` + 总图引用，入文 PNG 只是预览。
+推荐：轮廓之后按件写出子 SVG 再拼总图，再 `callout_mode: overlay` 注入件号。大模型只定位，Python/SVG 叠标；出图后端不是 `local` 时可先试一次生图件号（以轮廓图为输入只加号，轮廓有变即不过），不过就走 overlay，不反复生图纠号。叠标后须读图按 `parts` 名称核对引出线（改 YAML 重叠标，最多 2 轮）；脚本合法 ≠ 图面对。禁止自创件号；CAD 投影不是线稿。可编辑源是 `parts/*.svg` + 总图引用，入文 PNG 只是预览。
+
+## 出图后端（生图）
+
+流程见 **`prompts/figure_generation.md`**。方法移植自 [codex-ppt-skill](https://github.com/ningzimu/codex-ppt-skill)（MIT），即宿主内置生图工具优先、CLI 兜底、样图门、一图一 job、读图 QA、登记，失败回退本地渲染。
+
+| 脚本 | 前缀 | 作用 |
+|------|------|------|
+| **`figure_backend.py`** | `FIGURE_BACKEND:` | 探测 / 确认 / 记录本案后端（`builtin` / `cli` / `local`）与样图，写 `figure_backend.json`；`PATENT_SKILL_FIGURE_BACKEND=local` 强制旧行为 |
+| **`figure_jobs.py`** | `FIGURE_JOB:` | `prepare`（mermaid md / invention_figures.yaml / 线稿门禁 jobs）→ `record` / `block` / `fallback` / `status`；`status` 有 pending、blocked 时退出码 2 |
+| **`image_api.py`** | `IMAGE_API:` | CLI 后端：`job --job figure_jobs/x.json`（有参考图走 edit）、`generate`、`edit`、`generate-batch`；`--dry-run` 只打印请求 |
+| **`image_runtime.py`** | `IMAGE_RUNTIME:` | `config` 写 `~/.patent-skill/.env`（0600，key 打码），`doctor [--check-api]` |
+| **`bw_normalize.py`** | `BW_NORMALIZE:` | 后处理：真黑白、按内容裁切、DPI、可选 SVG 包装与摘要附图副本；报 `color_ratio` / `gray_ratio` |
+| **`image_providers/`** | — | OpenAI 兼容与 AtlasCloud 适配 |
+| **`references/figure_prompt_templates.yaml`** | — | 各类附图的结构化 prompt 模板（黑白、无图号、只画清单内的件） |
+
+依赖 `requirements-image.txt`（openai、Pillow），仅 CLI 后端需要，征得同意再装。上述文件在申请包 `tools/` 有同文副本（`patent-application/tests/test_design_view_sync.py` 比对）。
+
+```bash
+python tools/figure_backend.py --case-dir outputs/case
+python tools/figure_jobs.py prepare --case-dir outputs/case --from-md outputs/case/草稿.md
+python tools/image_api.py job --job outputs/case/figure_jobs/mmd_01.json
+python tools/figure_jobs.py record --case-dir outputs/case --fig mmd_01 --qa-note "文字逐字核对通过"
+python tools/mermaid_render.py -i outputs/case/草稿.md -o "outputs/case/案件名_20260101120000.md" --ai-figures outputs/case/figure_jobs.json
+python tools/figure_jobs.py status --case-dir outputs/case
+```
 
 ## Office / mermaid
 

@@ -6,6 +6,7 @@
 
 用法：
   python tools/render_invention_figures.py --plan figures/invention_figures.yaml --out-dir figures
+  python tools/render_invention_figures.py --plan figures/invention_figures.yaml --out-dir figures --only 2
 """
 from __future__ import annotations
 
@@ -571,7 +572,13 @@ def svg_to_png(svg_path: Path, png_path: Path) -> bool:
     return False
 
 
-def render_plan(plan: dict[str, Any], out_dir: Path, *, plan_dir: Path | None = None) -> dict[str, Any]:
+def render_plan(
+    plan: dict[str, Any],
+    out_dir: Path,
+    *,
+    plan_dir: Path | None = None,
+    only: set[int] | None = None,
+) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     written: list[str] = []
     png_ok = 0
@@ -582,6 +589,8 @@ def render_plan(plan: dict[str, Any], out_dir: Path, *, plan_dir: Path | None = 
             continue
         kind = str(fig.get("kind") or "")
         fig_no = int(fig.get("fig") or 0)
+        if only is not None and fig_no not in only:
+            continue
         if kind == "source_image":
             from compose_application_figure import compose_sheet
 
@@ -630,10 +639,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", required=True, type=Path)
     parser.add_argument("--out-dir", required=True, type=Path)
+    parser.add_argument(
+        "--only",
+        type=int,
+        action="append",
+        metavar="N",
+        help="只渲染图 N（可重复）；用于生图未过 QA 的图回退本地渲染",
+    )
     args = parser.parse_args()
     plan_path = args.plan.expanduser().resolve()
     plan = _load(plan_path)
-    result = render_plan(plan, args.out_dir.expanduser().resolve(), plan_dir=plan_path.parent)
+    result = render_plan(
+        plan,
+        args.out_dir.expanduser().resolve(),
+        plan_dir=plan_path.parent,
+        only=set(args.only) if args.only else None,
+    )
     ok = result["svg"] > 0
     print(
         f"APPLICATION_FIG: ok={1 if ok else 0} svg={result['svg']} "

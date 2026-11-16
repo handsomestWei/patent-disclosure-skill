@@ -24,4 +24,6 @@
 3. 校验 + emit tracker
 4. **`Read` `prompts/dispatch_application.md`**（纠正后不可 round_close）
 
+出图后端与样图确认（`figure_generation.md` 第 1–2 节）属于该问的问题：并入当轮 `ask_human`，确认后本案固定，后续轮次不再问。
+
 材料门禁失败（缺 schema/线稿）：写 `ask_human` 或保持交底包终止说明，案卷 `terminal_blocked` 或 `ask_human`，不要改去申请包硬写。

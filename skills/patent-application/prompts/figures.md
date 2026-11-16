@@ -46,15 +46,24 @@ python skills/patent-application/tools/compose_application_figure.py \
 
 ## 步骤（发明）
 
-1. 按 `figures/figure_plan.yaml` 写 `figures/invention_figures.yaml`（合同见 `references/schemas/invention_figures.schema.yaml`）。只为清单中的 `flowchart` / `block_diagram` / `source_image` 生成 YAML。
-2. 运行：
+1. 按 `figures/figure_plan.yaml` 写 `figures/invention_figures.yaml`（合同见 `references/schemas/invention_figures.schema.yaml`）。只为清单中的 `flowchart` / `block_diagram` / `source_image` 生成 YAML。YAML 同时是生图规格与本地渲染源，生图时也要先写。
+2. **生图（后端不是 `local` 时）**：先 `Read` `prompts/figure_generation.md`。
+
+```bash
+python skills/patent-application/tools/figure_jobs.py prepare --case-dir <产出> \
+  --from-invention-yaml <产出>/figures/invention_figures.yaml
+```
+
+逐图出图（样图为主流程图）→ 读图 QA（框内文字逐字、框数与独权一致、无 S1、无件号引出、纯黑白、图内无图号）→ `figure_jobs.py record`。登记时自动转真黑白并按内容裁切，写出 `figures/图N.png`、`图N.svg`（abstract 另写 `摘要附图.png`）。未过 QA 的图 `block` 后只对该图跑第 3 步加 `--only N`，再 `fallback`。`source_image` 不生图，仍用第 3 步 `--only N` 出图。
+
+3. 本地渲染（后端为 `local`，或第 2 步回退的图）：
 
 ```bash
 python skills/patent-application/tools/render_invention_figures.py \
   --plan <产出>/figures/invention_figures.yaml \
-  --out-dir <产出>/figures
+  --out-dir <产出>/figures            # 只出个别图时加 --only N（可重复）
 ```
 
-3. 看 `APPLICATION_FIG:`。SVG 必有；PNG 供 Word。PNG 失败记问题清单。
+4. 看 `APPLICATION_FIG:`。SVG 必有；PNG 供 Word。PNG 失败记问题清单。
 
 不做 TIFF。

@@ -21,6 +21,11 @@
   python tools/mermaid_render.py -i draft.md -o out/disclosure.md --docx out/custom.docx
   python tools/mermaid_render.py -i draft.md -o disclosure.md --no-docx
   python tools/mermaid_render.py -i draft.md -o disclosure.md --math   # 公式 PNG，须 matplotlib
+  python tools/mermaid_render.py -i draft.md -o disclosure.md --ai-figures outputs/case/figure_jobs.json
+
+**生图引用**（``--ai-figures``，可选）：围栏源码 sha1 命中 ``figure_jobs.py`` 已登记（recorded）的生成图时，
+直接复制该图作为本块 PNG，不启动浏览器；未命中（含迭代改过 mermaid 的过期图）按上述 Playwright 本地渲染。
+不传该参数时行为不变。流程见 ``prompts/figure_generation.md``。
 """
 from __future__ import annotations
 
@@ -354,6 +359,47 @@ def render_markdown_mermaid(
     return "".join(out), ok, failed
 
 
+class _AiFigureRenderer:
+    """``render_one`` that prefers recorded generated figures, else renders locally on demand."""
+
+    def __init__(self, manifest: Path, *, scale: float, width: int, height: int) -> None:
+        self.manifest = manifest
+        self._kw = {"scale": scale, "width": width, "height": height}
+        self._local: _PlaywrightMermaid | None = None
+        self._error: str | None = None
+        self.hits = 0
+        self.misses = 0
+
+    def render_one(self, mermaid_source: str, png_path: Path) -> None:
+        import shutil
+
+        from figure_jobs import recorded_image_for_mermaid
+
+        image = recorded_image_for_mermaid(self.manifest, mermaid_source)
+        if image is not None:
+            png_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(image, png_path)
+            self.hits += 1
+            return
+        self.misses += 1
+        if self._error:
+            raise RuntimeError(self._error)
+        if self._local is None:
+            try:
+                local = _PlaywrightMermaid(**self._kw)
+                local.__enter__()
+            except Exception as e:
+                self._error = f"{e} {install_chromium_hint()}"
+                raise RuntimeError(self._error) from e
+            self._local = local
+        self._local.render_one(mermaid_source, png_path)
+
+    def close(self) -> None:
+        if self._local is not None:
+            self._local.close()
+            self._local = None
+
+
 def _print_manual_docx_hint(out_md: Path, docx_out: Path, base_dir: Path, md_script: Path) -> None:
     print(
         "提示：可手动将上述 Markdown 转为 Word（需已 pip install -r requirements.txt）：",
@@ -500,6 +546,13 @@ def main(argv: list[str] | None = None) -> int:
         metavar="PX",
         help="渲染视口高度像素（默认 1050）",
     )
+    p.add_argument(
+        "--ai-figures",
+        type=Path,
+        default=None,
+        metavar="JSON",
+        help="figure_jobs.json：围栏 sha1 命中已登记生成图则直接引用，未命中回退本地渲染",
+    )
     args = p.parse_args(argv)
     if args.mmdc_scale <= 0:
         print("错误：--mmdc-scale 须为正数", file=sys.stderr)
@@ -544,14 +597,32 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
 
-    new_md, n_ok, n_fail = render_markdown_mermaid(
-        md,
-        out_md_path=out_path,
-        assets_rel=args.assets_dir.strip("/\\") or "mermaid_figures",
-        mmdc_scale=args.mmdc_scale,
-        mmdc_width=args.mmdc_width,
-        mmdc_height=args.mmdc_height,
-    )
+    ai_renderer: _AiFigureRenderer | None = None
+    if args.ai_figures is not None:
+        ai_renderer = _AiFigureRenderer(
+            args.ai_figures.resolve(),
+            scale=args.mmdc_scale,
+            width=args.mmdc_width,
+            height=args.mmdc_height,
+        )
+    try:
+        new_md, n_ok, n_fail = render_markdown_mermaid(
+            md,
+            out_md_path=out_path,
+            assets_rel=args.assets_dir.strip("/\\") or "mermaid_figures",
+            mmdc_scale=args.mmdc_scale,
+            mmdc_width=args.mmdc_width,
+            mmdc_height=args.mmdc_height,
+            render_one=ai_renderer.render_one if ai_renderer else None,
+        )
+    finally:
+        if ai_renderer is not None:
+            ai_renderer.close()
+    if ai_renderer is not None:
+        print(
+            f"MERMAID: ai_figure_hit={ai_renderer.hits} ai_figure_miss={ai_renderer.misses}",
+            file=sys.stderr,
+        )
 
     out_path.write_text(new_md, encoding="utf-8")
     print(f"MERMAID: ok={n_ok} fail={n_fail}", file=sys.stderr)
