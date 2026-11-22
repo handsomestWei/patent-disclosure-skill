@@ -41,7 +41,7 @@
 - **入文同时嵌干净实拍与合格线稿**（`photo_clean` + `kind: lineart`）。实拍不得标成线稿；CAD 禁止入文。交底外观图按审查指南 4.2 与电子申请常见图幅出图；申请文件用同一清单核查，不改原图。  
 - **线稿（必做）**：成文前已按 `references/design_view_cnipa.md` + `prompts/image_gen.md` + `prompts/design_lineart_assist.md` 选用或生成；未过 4.2 须重画。不问用户。  
 - **交付**：`.md` 与同名 `.docx` 均须含上述实拍与线稿。  
-- 查新：`skills/patent-disclosure/tools/crawl/cnipa_epub_search.py --type design`；第一轮后按结果页 **LOC** 做 `--class` 第二轮；不足 4 条则同 LOC 回补第一轮，仍少可仅 `--class` / 相邻号再查，禁止编造。每条在先外观须可核验来源。Google Patents 可选，被墙即跳过。  
+- 查新：按 `prior_art_search.md`。有专利检索 MCP 则跳过公布站；否则 `skills/patent-disclosure/tools/crawl/cnipa_epub_search.py --type design`，第一轮后按结果页 **LOC** 做 `--class` 第二轮；不足 4 条则同 LOC 回补第一轮，仍少可仅 `--class` / 相邻号再查，禁止编造。每条在先外观须可核验来源。Google Patents 可选，被墙即跳过。  
 - `not_design_signals` 非空时须反问是否改实用新型/发明。  
 - **禁止**交付正文末尾追加技能仓库 / `examples/` /「虚构教学」脚注。
 
@@ -65,7 +65,7 @@
 - [ ] 已交付同名 `.md` 与 `.docx`，两套都嵌实拍与线稿  
 - [ ] 未把功能构造写成外观要点  
 - [ ] 查新 `--type design`；已按 LOC 做 `--class` 第二轮（或第一轮无分类号已按造型要点过滤）；不足 4 条已同 LOC 回补，未编造凑数  
-- [ ] 交付回复末块为 **`## 交付后请确认`**（`../delivery_confirm.md`）；政策简报仅第 4 条且按 **`skills/patent-exam-policy/prompts/soft_nudge.md`**
+- [ ] 交付回复在 **`## 交付后请确认` 之前**已有方向摘要（`../disclosure_preview.md`）；末块为 **`## 交付后请确认`**（`../delivery_confirm.md`）；政策简报仅第 4 条且按 **`skills/patent-exam-policy/prompts/soft_nudge.md`**
 - [ ] **`## 交付后请确认` 第 1 条**：若 cad_scan 为 `ask_enable_step_parse`，交底已落盘后再以 **`(b)` 标签**反问是否开启 STEP 解析；未得「是」未装依赖；若同轮公式 PNG 也待问则按 `delivery_confirm.md` 让位于 `(a)`
 
 表例见同目录 **`template_reference.md`**。

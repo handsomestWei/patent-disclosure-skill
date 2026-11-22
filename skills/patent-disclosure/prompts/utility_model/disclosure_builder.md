@@ -70,7 +70,7 @@
 - 推荐：「一种……装置，包括……；其特征在于……（连接/形状限定）」  
 - 避免：「一种……方法，包括以下步骤……」作为唯一独立点  
 - **分 5.1 必要技术特征 / 5.2 优选特征**，按**删除测试**归类（删掉该构造后还能否解决第二章的装配/受力/通道/拆装问题：不能→5.1，仍能→5.2）；5.1 条目与 1.1 比对表的 **Fk 同编号**，每条**复述构造全文**，件号与 `structure_schema.parts` 同一张表。口径见发明 **`../invention/disclosure_builder.md` §7.10**（比对维度换成部件与连接关系；门禁优先 **带疑点过**，不必抬到「过」；正文 Fk 出场同样适用）。  
-- 对话中「本稿可调整」须来自本稿结构特征，勿凭空捏造；定稿回复末块见 **`../delivery_confirm.md`**。
+- 对话中「本稿可调整」须来自本稿结构特征，勿凭空捏造；定稿回复先按 **`../disclosure_preview.md`** 写方向摘要（默认不等人），末块见 **`../delivery_confirm.md`**。
 
 ## 7.6 自检（内部）
 
@@ -84,7 +84,7 @@
 - [ ] 查新使用 `--type utility_model`（或 all 后人工筛）；第二轮不足 4 条已同 IPC 回补，未编造凑数  
 - [ ] 未把外观美感 / 纯方法写成构造主线  
 - [ ] 结构线稿已按 image_gen + structure_lineart_assist + 按件拼装 选用或生成（含 `parts/{视}_{id}.svg`）；件号对齐 StructureSchema；CAD 未入文  
-- [ ] 交付回复末块为 **`## 交付后请确认`**（`../delivery_confirm.md`）；政策简报仅第 4 条且按 **`skills/patent-exam-policy/prompts/soft_nudge.md`**
+- [ ] 交付回复在 **`## 交付后请确认` 之前**已有方向摘要（`../disclosure_preview.md`）；末块为 **`## 交付后请确认`**（`../delivery_confirm.md`）；政策简报仅第 4 条且按 **`skills/patent-exam-policy/prompts/soft_nudge.md`**
 - [ ] **`## 交付后请确认` 第 1 条**：若 cad_scan 为 `ask_enable_step_parse`，交底已落盘后再以 **`(b)` 标签**反问是否开启 STEP 解析；未得「是」未装依赖；若同轮公式 PNG 也待问则按 `delivery_confirm.md` 让位于 `(a)`
 
 模版表例见同目录 **`template_reference.md`**。

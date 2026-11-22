@@ -16,7 +16,7 @@ python skills/patent-disclosure/tools/fence/check_layout.py --family outputs/{�
 
 对每个 `write_this_round: true` 的节点**依次**写交底，不要并行糊成一份，**禁止**再走「3–5 点融合成一篇」。
 
-主路径 Step 3–4 / Step 5 **不要重跑整案挖点**。分件查新只针对本件 `necessary_features`：按 `prompts/prior_art_search.md` 用本包 `cnipa_epub_search.py` 一词一页，写入**该篇** 1.1。**禁止**抄首篇对比清单，**禁止**调 `patent-search` 的 `tools/`。
+主路径 Step 3–4 / Step 5 **不要重跑整案挖点**。分件查新只针对本件 `necessary_features`：按 `prompts/prior_art_search.md`（主路径已走 A0 则同样用该 MCP，否则本包 `cnipa_epub_search.py` 一词一页），写入**该篇** 1.1。**禁止**抄首篇对比清单，**禁止**调仓库内 `patent-search` 的 `tools/`。
 
 | 节点 | 怎么写 |
 |------|--------|

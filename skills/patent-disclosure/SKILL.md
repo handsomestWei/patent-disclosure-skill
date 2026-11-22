@@ -27,16 +27,16 @@ user-invocable: false
 | Step 2 | `prompts/project_scan.md`；有 `.tex` 再 `Read prompts/tex_scan.md` |
 | Step 3–4 | `prompts/invention/` · `utility_model/` · `design/` 挖点 |
 | 填表 / 线稿 | `prompts/fill_*`、`image_gen.md`、`*_lineart_*.md`；外观视图口径 `references/design_view_cnipa.md`；外观成文前 `tools/check_design_views.py`；结构案成文前 `tools/check_source_parts.py` |
-| Step 5 | `prompts/prior_art_search.md`（轻量查新：3～4 个手段短语，公布模式每页 10 条，LLM 摘要精排） |
-| Step 5.5 | 同文件「**D1 锁定与区别特征 Fk**」：主比对钉一篇最接近 + 逐特征表（可 D2 补行）+ **三态门禁**，落 `查新与区别定位_*.md`。三态都进 Step 6；**不过**仍成文但创造性降级 |
-| Step 6 | `prompts/disclosure_preview.md` |
+| Step 5 | `prompts/prior_art_search.md`（轻量查新：3～4 个手段短语，LLM 摘要精排。有专利检索 MCP 则跳过公布站；否则一词一页） |
+| Step 5.5 | 同文件「**D1 锁定与区别特征 Fk**」：主比对钉一篇最接近 + 逐特征表（可 D2 补行）+ **三态门禁**，落 `查新与区别定位_*.md`。三态都进 Step 6/7；**不过**仍成文但创造性降级 |
+| Step 6 | `prompts/disclosure_preview.md`：**默认不等人**，直接 Step 7。仅用户点名「预览 / 先看方向 / 确认后再写」才停。方向摘要写入定稿回复、**交付后请确认**之前 |
 | Step 7 | 对应类型 `disclosure_builder.md` + `template_reference.md` |
 | Step 8 | `prompts/disclosure_self_check.md` |
 | 迭代 | `iteration_context.md` / `merger.md` / `correction_handler.md` |
 | 旁路 · 保护型 1+N | 首篇定稿后 `prompts/fence/guardrails.md`；用户同意则 `decompose.md` → `design_around.md` → `matrix.md` → `plan.md`（family.yaml + 专利布局.md）→ `score.md`（立项后弱校验）→ 确认后 `dispatch.md` |
 | 交付对话 | 定稿回复末块 `prompts/delivery_confirm.md`（标题固定 **交付后请确认**） |
 
-查新：`prompts/prior_art_search.md`，脚本 `tools/crawl/cnipa_epub_search.py`（整仓路径 `skills/patent-disclosure/tools/crawl/cnipa_epub_search.py`）。
+查新：`prompts/prior_art_search.md`。有专利检索 MCP 则走 A0、跳过公布站；否则脚本 `tools/crawl/cnipa_epub_search.py`（整仓路径 `skills/patent-disclosure/tools/crawl/cnipa_epub_search.py`）。
 
 围栏：Step 8 之后只在交付回复 **`## 交付后请确认`** 第 3 条询问。口径见 `prompts/fence/guardrails.md`。立项说明直接写 `outputs/{案件}/fence/专利布局.md`（章节见 `prompts/fence/plan.md`），`family.yaml` 只供校验和分件。弱校验表 `references/scorecards/gbt42748_fence.yaml`。口头确认「按 C1、P1 写」后再分件。
 
