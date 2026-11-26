@@ -2,7 +2,7 @@
 
 # 中国专利.skill
 
-> 专利点挖掘、交底书（发明/实用/外观）与申请文件编写；按图或权要等多条件检索；通俗解读专利和地图探索；审查政策解读；辅助审查答复。
+> 专利点挖掘、交底书（发明/实用/外观）与申请文件编写；专利蒸馏；按图或权要等多条件检索；通俗解读专利和地图探索；审查政策解读；辅助审查答复。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
@@ -141,6 +141,13 @@
 <td>角色扮演交底工程师 vs 专利代理师：自主多轮规划工作流，材料一丢就出交底和申请，缺事实就问、绝不瞎编</td>
 <td>「交底申请一起做」· 「从零出交底和申请」</td>
 <td nowrap><a href="skills/patent-docket/README.md">详情</a></td>
+</tr>
+<tr>
+<td nowrap><a href="skills/patent-distill/README.md"><code style="white-space:nowrap">patent-distill</code></a></td>
+<td nowrap>专利蒸馏</td>
+<td>从已有专利里合并文风，并按案件学习权要怎么选的思路</td>
+<td>「专利蒸馏」· 「蒸文风」· 「蒸思路」</td>
+<td nowrap><a href="skills/patent-distill/README.md">详情</a></td>
 </tr>
 <tr>
 <td nowrap><a href="skills/patent-reader/README.md"><code style="white-space:nowrap">patent-reader</code></a></td>

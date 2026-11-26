@@ -1,0 +1,36 @@
+# 专利蒸馏机器合同。改枚举时只改本文件。
+schema_profile: patent-distill
+schema_playbook: patent-distill-playbook
+version: 1
+
+patent_type: [invention, utility_model, design]
+ownership: [own, third_party]
+tracks: [style, strategy]
+input_role: [disclosure, application, publication, publication_a, publication_b]
+style_kind: [application]
+# 文风合并的参考上限。输入不拦截；仅交付总结在超过该数时提示。
+style_sample_hint: 4
+status: [draft, confirmed]
+strength: [none, weak, strong, observe]
+
+independent_grain:
+  - object_only
+  - structure_relation
+  - method_steps
+  - module_relation
+  - key_parameter
+  - appearance_overall
+independent_count:
+  - single
+  - method_then_system
+  - product_only
+  - multiple
+  - design_article
+dependent_layer: [preferred_param, branch, system_map, embodiment]
+leave_in_spec: [extra_embodiment, numeric_example, alternative, none]
+never_in_independent: [numeric_range, brand, effect_only, optional_feature, none]
+point_split: [necessary_vs_preferred, design_views]
+points_per_disclosure: [one_core, few_cores, view_set]
+support_rule: [every_independent_limitation_has_embodiment, view_consistency]
+figure_binding: [claim_order, figure_order, loose, design_views]
+layout_pattern: [core_plus_peripheral]

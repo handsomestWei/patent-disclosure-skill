@@ -1,9 +1,9 @@
 ---
 name: patent-disclosure-skill
-description: "中国专利技能：挖掘专利点并撰写发明/实用新型/外观设计交底书；将已有交底改写为申请文件四件套；规划发明母案与分案并核对原始披露；依据发明人材料衔接交底与申请；按著录项目检索公布公告，点名海外时检索美欧日韩等海外专利；解读中国及海外专利文献；基于已入库解读生成专利地图；对照审查政策撰写简报；辅助审查意见答复；编制权利要求对照表底稿（不构成法律意见）。| China patents: mine patent points and draft invention/utility-model/design disclosures; convert an existing disclosure into application documents; plan invention divisionals and check original disclosure; sequence disclosure and application from inventor materials; search CNIPA bibliographic records, and overseas patents via Google Patents on request; interpret Chinese and overseas patent documents; generate a patent map from an interpreted vault; prepare examination-policy briefs; assist office-action responses; and prepare claim-chart worksheets (not legal opinions)."
-version: "5.3.0"
+description: "中国专利技能：挖掘专利点并撰写发明/实用新型/外观设计交底书；将已有交底改写为申请文件四件套；规划发明母案与分案并核对原始披露；依据发明人材料衔接交底与申请；点名时把申请文件合并成文风，并按案件蒸馏权要选择思路；按著录项目检索公布公告，点名海外时检索美欧日韩等海外专利；解读中国及海外专利文献；基于已入库解读生成专利地图；对照审查政策撰写简报；辅助审查意见答复；编制权利要求对照表底稿（不构成法律意见）。| China patents: mine patent points and draft invention/utility-model/design disclosures; convert an existing disclosure into application documents; plan invention divisionals and check original disclosure; sequence disclosure and application from inventor materials; on request, merge drafting style from application documents and split claim-selection playbooks by case; search CNIPA bibliographic records, and overseas patents via Google Patents on request; interpret Chinese and overseas patent documents; generate a patent map from an interpreted vault; prepare examination-policy briefs; assist office-action responses; and prepare claim-chart worksheets (not legal opinions)."
+version: "5.4.0"
 user-invocable: true
-argument-hint: "[可选：项目路径 / 交底书 / 申请底稿 / 发明分案 / 交底申请一起做 / 专利检索 / 专利号或 PDF / 专利地图 / 专利围栏 / 政策简报 / 审查答复 / 对照表]"
+argument-hint: "[可选：项目路径 / 交底书 / 申请底稿 / 发明分案 / 交底申请一起做 / 专利蒸馏 / 专利检索 / 专利号或 PDF / 专利地图 / 专利围栏 / 政策简报 / 审查答复 / 对照表]"
 allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 ---
 
@@ -18,6 +18,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 | **交底** | 挖专利点 → 查新 → 成稿 → 迭代（发明 / 实用新型 / 外观）；首篇定稿后可做保护型 1+N 专利布局 | `skills/patent-disclosure/SKILL.md` |
 | **申请文件** | 已有交底 → 权要 / 说明书 / 摘要 / 附图；发明母案与分案规划、原始披露核对 | `skills/patent-application/SKILL.md` |
 | **案卷** | 按发明人/工程师给的材料一趟写出交底书和申请文件 | `skills/patent-docket/SKILL.md` |
+| **专利蒸馏** | 申请文件合并成文风；思路按案件从交底与权要对照抽出 | `skills/patent-distill/SKILL.md` |
 | **检索** | 公布站高级查询（发明人/申请人/分类号/名称/摘要等）；单图或权要可先抽关键字再查；点名海外时用 Google Patents 查美欧日韩等 | `skills/patent-search/SKILL.md` |
 | **解读** | 公开号（中国或海外）/ PDF / 全文 → 通俗笔记 + 图谱 | `skills/patent-reader/SKILL.md` |
 | **对照表** | 独权特征 vs 对比文件 / 产品 / 标准，逐格证据与强弱（须点名；底稿，非法律意见） | `skills/patent-chart/SKILL.md` |
@@ -36,6 +37,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 | 发明分案（含上下文中的「先做分案一」）、母案与分案规划、分案原始披露核验 — **须点名** | 规划可先列材料缺口；分案四件套须同案交底目录并先核验原始申请 | 先走申请文件包 `prompts/divisional.md`；仅写交底时再转发明交底 | 只撰写点名的案件；缺原始支持先交规划或核对稿 |
 | 申请文件、申请底稿、申报材料；`/申请底稿`、`/patent-apply` — **须点名** | **须指定交底目录**；缺 schema / 线稿 / 交底书则停，引导先补交底 | 申请文件包 | — |
 | 交底申请一起做、从零出交底和申请、一条龙、帮写交底再出申请、按清单改、会稿、案卷；`/patent-docket` — **须点名** | 状态写 `outputs/docket/`；清单缺口最多来回三轮，缺事实问人、不编 | 案卷包（再由它 `Read` 交底或申请入口） | 只写交底，或只出四件套时，不进案卷 |
+| 专利蒸馏、蒸文风、蒸思路；`/专利蒸馏`、`/patent-distill` — **须点名** | 须有本地交底、申请文件或公开全文；只有公开号则停 | 蒸馏包 | 不把推测写成可调用策略 |
 | 按著录字段查公布公告、个人公开清单、以图或权要生成检索式；`/patent-search` | 无 | 检索包 | 结果不写成交底查新 |
 | 海外检索、查美国 / 欧洲 / 日本 / 韩国专利、PCT 检索、「包含某国」— **须点名** | 没提国家时走公布站 | 检索包海外旁路 | 不进交底查新；限流即停，不重试 |
 | 读专利、给出公开号（含海外号）或 PDF 且目标是「读懂」；`/patent-read`、`/读专利` | 无 | 解读包（**优先**） | 不跑交底成文，不自动进对照表；海外号不顺带做海外检索 |
@@ -54,7 +56,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 
 ## 能力自述（用户问「你能做什么 / 还能做什么」时）
 
-按**能力总览**复述 9 项，每项一句并给出触发说法；说明**申请文件 / 案卷 / 专利地图 / 审查答复 / 政策简报 / 对照表 / 海外检索须点名**才会进入。本节只用能力总览，不用交底的「交付后请确认」。
+按**能力总览**复述 10 项，每项一句并给出触发说法；说明**申请文件 / 案卷 / 专利蒸馏 / 专利地图 / 审查答复 / 政策简报 / 对照表 / 海外检索须点名**才会进入。本节只用能力总览，不用交底的「交付后请确认」。
 
 ## 目录
 
@@ -63,6 +65,7 @@ SKILL.md                         # 本文件：子技能路由入口
 skills/patent-disclosure/        # 交底（含填表/线稿/CAD/公式/docx；围栏旁路）
 skills/patent-application/       # 申请文件四件套（须显式；须指定交底目录）
 skills/patent-docket/            # 案卷：交底到申请一趟串起来（须显式）
+skills/patent-distill/           # 专利蒸馏：文风与权要选择思路（须显式）
 skills/patent-search/            # 著录检索
 skills/patent-reader/            # 解读
 skills/patent-chart/             # 对照表（须显式）
@@ -76,7 +79,7 @@ skills/patent-exam-policy/        # 政策简报（技能进化为旁路）
 - **默认语言**：面向用户的检索清单、交底书、申请文件、案卷 TRACKER、解读和审查答复用简体中文；脚本机读前缀与 JSON 字段名保持稳定。
 - **专利类型**：未显式指定时交底**默认发明**。
 - **脚本路径**：相对本技能仓库根（本文件所在目录）。整仓：`python skills/patent-disclosure/tools/…`。当前工作区不是本仓库时，把技能安装目录接到命令前面。单独拷走某一子包时，该包内用 `python tools/…`。路径只写仓库相对路径。
-- **用户产出**：只写当前工作区 `outputs/`（解读 `outputs/patent_reader/`，检索 `outputs/patent-search/`，对照表 `outputs/patent-chart/`，政策 `outputs/exam-policy/`，审查答复 `outputs/oa/`，申请文件 `outputs/patent-application/`，案卷 `outputs/docket/`，交底围栏 `outputs/{案件}/fence/`）。调用脚本时 cwd 用工作区根；`-o` / `-w` 用上述相对路径。
+- **用户产出**：只写当前工作区 `outputs/`（解读 `outputs/patent_reader/`，检索 `outputs/patent-search/`，对照表 `outputs/patent-chart/`，政策 `outputs/exam-policy/`，审查答复 `outputs/oa/`，申请文件 `outputs/patent-application/`，案卷 `outputs/docket/`，专利蒸馏 `outputs/patent-distill/`，交底围栏 `outputs/{案件}/fence/`）。调用脚本时 cwd 用工作区根；`-o` / `-w` 用上述相对路径。
 
 ## 执行前核对
 
