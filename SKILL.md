@@ -1,6 +1,6 @@
 ---
 name: patent-disclosure-skill
-description: "中国专利技能：挖掘专利点并撰写发明/实用新型/外观设计交底书；将已有交底改写为申请文件四件套；规划发明母案与分案并核对原始披露；依据发明人材料衔接交底与申请；点名时把申请文件合并成文风，并按案件蒸馏权要选择思路；按著录项目检索公布公告，点名海外时检索美欧日韩等海外专利；解读中国及海外专利文献；基于已入库解读生成专利地图；对照审查政策撰写简报；辅助审查意见答复；编制权利要求对照表底稿（不构成法律意见）。| China patents: mine patent points and draft invention/utility-model/design disclosures; convert an existing disclosure into application documents; plan invention divisionals and check original disclosure; sequence disclosure and application from inventor materials; on request, merge drafting style from application documents and split claim-selection playbooks by case; search CNIPA bibliographic records, and overseas patents via Google Patents on request; interpret Chinese and overseas patent documents; generate a patent map from an interpreted vault; prepare examination-policy briefs; assist office-action responses; and prepare claim-chart worksheets (not legal opinions)."
+description: "中国专利技能：挖掘专利点并撰写发明/实用新型/外观设计交底书；将已有交底改写为申请文件四件套；规划发明母案与分案并核对原始披露；依据发明人材料衔接交底与申请；点名时把申请文件合并成文风，并按案件蒸馏权要选择思路，写交底或申请时可参考蒸馏结果；按著录项目检索公布公告，点名海外时检索美欧日韩等海外专利；解读中国及海外专利文献；基于已入库解读生成专利地图；对照审查政策撰写简报；辅助审查意见答复；编制权利要求对照表底稿（不构成法律意见）。| China patents: mine patent points and draft invention/utility-model/design disclosures; convert an existing disclosure into application documents; plan invention divisionals and check original disclosure; sequence disclosure and application from inventor materials; on request, merge drafting style from application documents and split claim-selection playbooks by case, then apply them when drafting disclosures or applications; search CNIPA bibliographic records, and overseas patents via Google Patents on request; interpret Chinese and overseas patent documents; generate a patent map from an interpreted vault; prepare examination-policy briefs; assist office-action responses; and prepare claim-chart worksheets (not legal opinions)."
 version: "5.4.0"
 user-invocable: true
 argument-hint: "[可选：项目路径 / 交底书 / 申请底稿 / 发明分案 / 交底申请一起做 / 专利蒸馏 / 专利检索 / 专利号或 PDF / 专利地图 / 专利围栏 / 政策简报 / 审查答复 / 对照表]"
@@ -46,11 +46,19 @@ allowed-tools: Read, Write, Edit, Grep, Glob, WebSearch, Bash
 | 审查意见、OA、案例入库；`/oa` — **须点名** | 库薄时先引导入库 | 审查答复包 | — |
 | 政策简报、政策雷达；`/政策简报`、`/patent-brief`、`/patent-exam-policy`；「技能进化 / `/patent-evolve`」同一入口 — **须点名** | 无 | 政策简报包 | 无点名不改技能文件 |
 
+## 组合路由
+
+一次请求要依次进入多个包时查本表。经本表进入的包视为已点名；中间步骤的包不单独出「交付后请确认」，由最后一个包收尾。没命中本表时按「路由判定表」单包进入。
+
+| 场景 | 用户这样说 | 前置判定 | 依次进入 | 明确不要做 |
+|------|------------|----------|----------|------------|
+| 参考写作 | 写交底或申请，并「参考 / 按 / 仿照」某些专利或蒸馏档的写法、文风、思路 | 已是蒸馏档则直接写作；本地申请文件或公开全文先过写作门禁再蒸馏；只有公开号或只是本案技术材料则不蒸馏；交底里分不清是学写法还是当现有技术，问一句 | 蒸馏包（需要时，校验到 `DISTILL_OK`）→ 写作包，按其 `prompts/distill_ref.md` 读取 | 不从蒸馏档取技术事实；没提参考不主动找蒸馏档 |
+
 ## 通则
 
 - **工具归属**：填表、线稿、CAD、公式、Word 出图在交底包 `prompts/` 与 `tools/`；解读填表用解读包 `prompts/fill_*`；过 WAF 的 `browser.py`、Markdown 转 Word 的 `md_to_docx.py` **各包自带副本**。
 - **脚本归属**：只用当前子技能自己的 `tools/`。同一能力已有本包副本时，跑本包这一份。
-- **调度视同点名**：由案卷调度申请文件视为已点名申请文件，**仍须**有交底目录。由对照表派解读 / 检索视为已点名该包。
+- **调度视同点名**：由案卷调度申请文件视为已点名申请文件，**仍须**有交底目录。由对照表派解读 / 检索视为已点名该包。经「组合路由」进入的包视为已点名。
 - **子技能封面**：各 `skills/*/SKILL.md` 统一六段：用途 / 何时用 / 输入 / 步骤 / 护栏 / 产出物。细则仍 `Read` 该包 `prompts/`。根文件只做路由，不套这六段。
 - **交付末块**：各子技能交付回复末块标题统一为 **交付后请确认**；跨包口令以上表为准，交底**不得**在此节把申请、案卷、专利地图、对照表列为下一步。检索与专利地图可不设此节。
 
@@ -86,6 +94,7 @@ skills/patent-exam-policy/        # 政策简报（技能进化为旁路）
 ```
 □ 已 Read 对应 skills/*/SKILL.md，未把本文件当成交底或申请正文
 □ 去向以「路由判定表」为准；须点名的包，用户没点名就停
+□ 一次请求涉及多个包时，先查「组合路由」
 □ 脚本只用当前子技能自己的 tools/（见「通则」）
 □ 交付回复末块标题为「交付后请确认」
 ```

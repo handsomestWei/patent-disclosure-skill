@@ -19,6 +19,8 @@ user-invocable: false
 
 发明人材料、项目目录、可选 `.tex`；类型与联系人在 `prompts/intake.md` 收敛，不全可推断并注明假设。`--type` 与 intake 一致。线稿、CAD、公式、Word 出图、PDF 转 md 用本包 `tools/`。
 
+可选：用户点名的蒸馏档，按 `prompts/distill_ref.md` 读取第五、六章的切法，不提供事实。
+
 ## 步骤
 
 | 步骤 | 文件 |
@@ -29,6 +31,7 @@ user-invocable: false
 | 填表 / 线稿 | `prompts/fill_*`、`image_gen.md`、`*_lineart_*.md`；外观视图口径 `references/design_view_cnipa.md`；外观成文前 `tools/check_design_views.py`；结构案成文前 `tools/check_source_parts.py` |
 | Step 5 | `prompts/prior_art_search.md`（轻量查新：3～4 个手段短语，LLM 摘要精排。有专利检索 MCP 则跳过公布站；否则一词一页） |
 | Step 5.5 | 同文件「**D1 锁定与区别特征 Fk**」：主比对钉一篇最接近 + 逐特征表（可 D2 补行）+ **三态门禁**，落 `查新与区别定位_*.md`。三态都进 Step 6/7；**不过**仍成文但创造性降级 |
+| 旁路 · 蒸馏参考 | 用户点名蒸馏档，或经根路由「组合路由」带来档案路径时，Step 5.5 之后 `prompts/distill_ref.md`；没有则跳过 |
 | Step 6 | `prompts/disclosure_preview.md`：**默认不等人**，直接 Step 7。仅用户点名「预览 / 先看方向 / 确认后再写」才停。方向摘要写入定稿回复、**交付后请确认**之前 |
 | Step 7 | 对应类型 `disclosure_builder.md` + `template_reference.md` |
 | Step 8 | `prompts/disclosure_self_check.md` |
@@ -51,6 +54,7 @@ python skills/patent-disclosure/tools/fence/check_scorecard.py -i outputs/{案�
 - 细则在各步 prompt；围栏先 `Read` `prompts/fence/guardrails.md`。
 - 禁止假 D1，禁止空喊创新性强。未披露部件写入 `uncertain`，不进入权要或说明书。
 - 未确认立项说明，不分件写多篇交底。
+- 蒸馏档与删除测试或本包规定冲突时，以本案为准，跳过该条并在交付里说明。
 
 ## 产出物
 

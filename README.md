@@ -124,14 +124,14 @@
 <tr>
 <td nowrap><a href="skills/patent-disclosure/README.md"><code style="white-space:nowrap">patent-disclosure</code></a></td>
 <td nowrap>交底书编写</td>
-<td>不会写专利也没关系：材料丢进来，挖出真正能保护的点、查一圈在先技术，直接变成能交差的交底书（发明 / 实用新型 / 外观）。首篇定稿后还可做保护型 1+N 专利布局</td>
+<td>不会写专利也没关系：材料丢进来，挖出真正能保护的点、查一圈在先技术，直接变成能交差的交底书（发明 / 实用新型 / 外观）。有现成专利当范文，可先蒸馏再照着写。首篇定稿后还可做保护型 1+N 专利布局</td>
 <td>「交底书」</td>
 <td nowrap><a href="skills/patent-disclosure/README.md">详情</a></td>
 </tr>
 <tr>
 <td nowrap><a href="skills/patent-application/README.md"><code style="white-space:nowrap">patent-application</code></a></td>
 <td nowrap>申请文件</td>
-<td>已有交底，改成权要、说明书、摘要和附图；说不清的写入问题清单，不挡住整套文件</td>
+<td>已有交底，改成权要、说明书、摘要和附图；有现成专利当范文，可跟着蒸馏出的文风和思路写。说不清的写入问题清单，不挡住整套文件</td>
 <td>「申请文件」· 「申请底稿」</td>
 <td nowrap><a href="skills/patent-application/README.md">详情</a></td>
 </tr>

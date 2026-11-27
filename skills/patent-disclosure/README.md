@@ -20,6 +20,7 @@
 <tr><td nowrap width="1%"><strong>交底书成稿</strong></td><td>脱敏模版；发明用框图；实用/外观嵌结构图或视图；定稿可出 Word</td></tr>
 <tr><td nowrap width="1%"><strong>交付命名</strong></td><td>按案件名和时间戳输出 Markdown 与同名 Word</td></tr>
 <tr><td nowrap width="1%"><strong>自检 / 迭代</strong></td><td>逻辑与公式自检（不写入正文）；补材料或纠错会另存新文件并留下修订记录</td></tr>
+<tr><td nowrap width="1%"><strong>蒸馏参考（旁路）</strong></td><td>点名蒸馏档，或说「参考某几份专利的思路」时，按其切法划分第五章必要与优选特征；和本案不合的条目跳过，交付时说明用了哪些</td></tr>
 <tr><td nowrap width="1%"><strong>保护型 1+N（旁路）</strong></td><td>首篇定稿后先问要不要做布局。答应后：技术分解 → 突围路径 → 技术功效矩阵 → 立项说明（family.yaml + 专利布局.md，含立项校验表），确认后再分件写交底。只护自己的核心，本趟只出中国交底；校验看能不能拆开写，不是高价值达标</td></tr>
 </tbody>
 </table>

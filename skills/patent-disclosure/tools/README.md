@@ -74,6 +74,14 @@ python tools/fence/check_layout.py --family outputs/案/fence/family.yaml --matr
 python tools/fence/check_scorecard.py --table
 ```
 
+## 蒸馏参考（旁路）
+
+**`distill_ref.py`** 读取用户点名的蒸馏档，按阶段筛出可读文件，只读不写。测试见 `tests/test_distill_ref.py`，用法见 **`prompts/distill_ref.md`**。
+
+```bash
+python tools/distill_ref.py --ref <档案目录或档案id> --type invention --stage disclosure
+```
+
 ## 线稿规划（成文前必做）
 
 | 脚本 / 文档 | 作用 |

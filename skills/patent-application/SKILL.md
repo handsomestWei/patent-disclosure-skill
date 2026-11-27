@@ -18,11 +18,13 @@ user-invocable: false
 
 四件套使用同案交底产出：交底书（时间戳 `.md`，有则兼用 `.docx`）；发明用正文（框图/流程在 mermaid 里）；实用新型用 `structure_schema` + `figure_plan` + 入文线稿；外观用 `appearance_schema` + `figure_plan` + 入文实拍/线稿。发明人/申请人未填只记清单，不终止、不挡案卷轮次。发明分案的补充材料见 `prompts/divisional.md`。
 
+可选：用户点名的蒸馏档（文风与权要切法），按 `prompts/distill_ref.md` 读取，只辅助写法，不提供事实。
+
 ## 步骤
 
 1. **`Read`** `prompts/guardrails.md` → `intake.md`。发明分案按 `divisional.md` 决定本轮交付。只交规划或核对稿时到此结束；只写交底时转发明交底流程。
-2. 已有申请产出上改稿（未要求整案重写）：**`Read`** `iteration_context.md`；若为发明分案，按 `divisional.md` 核对本轮改动，支持不足时仅交核对稿。材料支持改动时按 `iteration.md` 另存新稿，到此结束
-3. 跑 `tools/material_gate.py --case-dir <交底目录>`；退出码 2 则停
+2. 已有申请产出上改稿（未要求整案重写）：**`Read`** `iteration_context.md`；若为发明分案，按 `divisional.md` 核对本轮改动，支持不足时仅交核对稿。材料支持改动时按 `iteration.md` 另存新稿（有蒸馏参考同样先按 `distill_ref.md` 读取），到此结束
+3. 跑 `tools/material_gate.py --case-dir <交底目录>`；退出码 2 则停。有蒸馏参考则接着 **`Read`** `prompts/distill_ref.md`，跑 `tools/distill_ref.py` 并逐条适配
 4. 发明 / 实用新型：`claim_strategy.md` → `claims_builder.md` → `figure_plan.md` → `figures.md` → `specification_builder.md` → `numeral_register.md` → `consistency.md`
 5. 外观：先 `Read` `references/design_view_cnipa.md`，只走 `design_application.md`；跑本包 `check_design_views.py`
 6. 本包 `tools/emit_application_docx.py` 出 Word；**`Read`** `issues.md`，写 `问题清单.md`（不入正式文件），并在**同一条交付回复**末块 **`## 交付后请确认`** 给出路径、摘要条目、请用户先看清单
@@ -32,6 +34,7 @@ user-invocable: false
 ## 护栏
 
 - 细则 `prompts/guardrails.md`。Word 与附图脚本只用本包 `tools/`。
+- 蒸馏档与交底或本包规定冲突时，以交底和本包为准，跳过该条并在交付里说明。
 
 ## 产出物
 

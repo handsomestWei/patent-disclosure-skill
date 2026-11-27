@@ -12,9 +12,9 @@
 - 获奖名单页：2026-09-02，<https://www.cnipa.gov.cn/art/2026/9/2/art_3701_207973.html>
 - 金奖项目名单 PDF（决定的附件 1，30 项）：<https://www.cnipa.gov.cn/module/download/downfile.jsp?classid=0&filename=b7393bee46894ad386857d009cf97d0d.pdf&showname=%E7%AC%AC%E4%BA%8C%E5%8D%81%E5%85%AD%E5%B1%8A%E4%B8%AD%E5%9B%BD%E4%B8%93%E5%88%A9%E9%87%91%E5%A5%96%E9%A1%B9%E7%9B%AE%E5%90%8D%E5%8D%95.pdf>
 
-授权公告号不是授奖决定正文里的栏。下表的授权公告号，是用名单中的专利号于 2026-11-26 在 Google Patents 检索后，取返回的中国发明授权文献号。名称、专利权人仍以国知局名单为准。
+授奖决定未列授权公告号。下表授权公告号系以名单所载专利号在 Google Patents 检索所得的中国发明授权文献号。专利名称、专利权人仍以国家知识产权局名单为准。
 
-全文下载两个入口都写在表里：
+表中各条提供两处全文下载入口：
 
 - 国知局专利公布公告：<http://epub.cnipa.gov.cn/patent/{授权公告号}>
 - Google Patents 中文详情：<https://patents.google.com/patent/{授权公告号}/zh>

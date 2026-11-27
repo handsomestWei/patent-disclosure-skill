@@ -26,6 +26,13 @@ claim_tree:
       aligns_embodiment: "第一种"  # 第一种 / 第二种 / 空
       point: ""
 named_figures: []        # 用户点名入文的源图路径；未点名则为 []
+distill_refs: []         # 蒸馏参考；未点名则为 []
+  # - ref: example-batch-job-scheduler   # 档案 id 或目录
+  #   part: case:example_batch_job_scheduler_20261126-085249   # style | case:<案件id>
+  #   changed: [claims.never_in_independent]   # 不读档案会写成别的样子
+  #   aligned: [claims.dependent_layers]       # 不读档案也会这样写
+  #   skipped: [claims.independent_count]
+  #   reason: 交底第五章没有系统对象           # 跳过原因
 ```
 
 `claim_tree.dependents[].layer`：
@@ -37,4 +44,4 @@ named_figures: []        # 用户点名入文的源图路径；未点名则为 [
 | `system_map` | 方法独权之后的系统/模块对应 | 结合图 1 |
 | `embodiment` | 仅实施例展开、不进独权的实施细节 | 对应「第一种/第二种」 |
 
-独权只写必要技术特征。交底第五章条目不要整段译成从属；排进上表一层后再写。`named_figures` 仅记录用户点名或交底已入文的额外示意图，禁止扫工程素材目录。
+独权只写必要技术特征。交底第五章条目不要整段译成从属；排进上表一层后再写。`named_figures` 仅记录用户点名或交底已入文的额外示意图，禁止扫工程素材目录。`distill_refs` 按 `prompts/distill_ref.md` 填写；蒸馏档内容不得写进 `essential`、`fallback`、`point` 等事实字段。

@@ -33,6 +33,7 @@ paths_keys:
   - disclosure_md
   - application_dir
   - issues_md
+  - distill_refs   # 可选；蒸馏档目录列表
 
 issue_item:
   - id

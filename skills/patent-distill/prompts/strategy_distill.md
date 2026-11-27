@@ -17,7 +17,7 @@
 
 `strategy.callable` 为 true 时才有这份文件。改切法，保留 `must_not_copy` 三条，把 `apply` 三句从 TODO 换成短指令。优先读案件目录里的 `全文.txt`（已去掉汉字间空格和页眉）。
 
-`strength` 为 `observe` 时不写 `playbook.yaml`。切法只留在 `策略观察.md` 的观察节，撰写新案不读取该案。
+`strength` 为 `observe` 时不写 `playbook.yaml`。切法只留在 `策略观察.md` 的观察节；写作包只在用户点名该档时读观察节，作参考不作规则。
 
 | 块 | 给以后哪一步 | 写什么 |
 |----|----------------|--------|

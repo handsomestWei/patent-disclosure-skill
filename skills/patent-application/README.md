@@ -17,6 +17,7 @@
 <tr><td nowrap width="1%"><strong>附图图型</strong></td><td>按权要选定剖视/爆炸/流程/框图/多状态，写入产出 <code>figures/figure_plan.yaml</code></td></tr>
 <tr><td nowrap width="1%"><strong>问题清单</strong></td><td>内容争议写入问题清单，不阻塞主文件；交付末尾提醒</td></tr>
 <tr><td nowrap width="1%"><strong>迭代</strong></td><td>已有产出上改稿则另存新时间戳目录</td></tr>
+<tr><td nowrap width="1%"><strong>蒸馏参考</strong></td><td>点名蒸馏档，或说「参考某几份专利的写法」时，读取文风与权要切法辅助撰写；和本案不合的条目跳过，交付时说明用了哪些</td></tr>
 </tbody>
 </table>
 

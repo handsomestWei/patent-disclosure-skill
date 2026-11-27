@@ -25,7 +25,7 @@ user-invocable: false
 3. 有 `DISTILL_STYLE` 则 **`Read`** `prompts/style_distill.md`，写批次根目录的 `style.md`、`sections/application.md`、`samples.md`
 4. 每一行 `DISTILL_CASE` **`Read`** `prompts/strategy_distill.md`，只写该案的 `策略观察.md` 与 `playbook.yaml`
 5. `tools/validate_distill.py --dir <批次目录>`，见到 `DISTILL_OK` 再交付
-6. 对话末块按 `prompts/delivery_confirm.md`。文风样本超过 4 份时，只在这段总结里提示参考上限，输入阶段照常全部合并
+6. 对话末块按 `prompts/delivery_confirm.md`。文风样本超过 4 份时，只在这段总结里提示参考上限，输入阶段照常全部合并。经根路由「组合路由」进入时不单独收尾，把档案目录交给写作包
 
 ```bash
 python skills/patent-distill/tools/classify_distill.py 交底.md 申请.md
