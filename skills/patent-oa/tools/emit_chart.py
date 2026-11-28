@@ -316,6 +316,28 @@ def _needs_review(scene: str, token: str) -> bool:
     return scene in ("fto", "infringement") and token == "强"
 
 
+def _claim_groups(chart: dict[str, Any]) -> list[tuple[str, list[dict]]]:
+    groups: list[tuple[str, list[dict]]] = []
+    index: dict[str, list[dict]] = {}
+    for feat in chart.get("features") or []:
+        key = str(feat.get("claim_no") or "")
+        if key not in index:
+            index[key] = []
+            groups.append((key, index[key]))
+        index[key].append(feat)
+    return groups
+
+
+def _tokens_for_claim(
+    feats: list[dict], col: dict[str, Any], cmap: dict[tuple[str, str], dict]
+) -> list[str]:
+    tokens = []
+    for feat in feats:
+        cell = cmap.get((feat["feature_id"], col["id"])) or {}
+        tokens.append(cell.get("strength") or "无")
+    return tokens
+
+
 def _cite_cell(cell: dict[str, Any], col: dict[str, Any]) -> dict[str, Any]:
     cite = _cite(cell)
     url = cell.get("source_url") or col.get("source_url") or ""
@@ -372,10 +394,29 @@ def _scene_sheet(chart: dict[str, Any], anchors: dict[tuple[str, str], int]) -> 
                     },
                 ]
             )
+        for claim_no, feats in _claim_groups(chart):
+            for col in cols:
+                tokens = _tokens_for_claim(feats, col, cmap)
+                if tokens and all(token in ("强", "中") for token in tokens):
+                    reading = "单篇路径：该文献对该权每个特征均为很强或中等，仍须人核能否单独使用"
+                else:
+                    reading = "缺格：该文献不能单独打该权。已覆盖的特征只说明特征级公开，组合路径须另核"
+                rows.append(
+                    [
+                        {"v": f"权{claim_no}" if claim_no else "权项", "s": S_LABEL},
+                        {"v": claim_no, "s": S_CLAIM_NO},
+                        {"v": reading, "s": S_WRAP},
+                        {"v": col.get("label") or col.get("id") or "", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                    ]
+                )
         return {
             "name": "路径备忘",
             "title": "无效对照 · 覆盖路径（不是无效结论）",
-            "subtitle": "已覆盖 = 该对照对该特征为很强/中等。出处可点开。不构成法律意见。",
+            "subtitle": "特征行：很强/中等记入已覆盖。页末按权项：缺任一格则该文献不能单独打该权。不构成法律意见。",
             "headers": ["特征", "权号", "权要原文", "已覆盖", "未覆盖", "最强", "出处", "明细"],
             "rows": rows,
             "widths": [9, 7, 36, 28, 28, 12, 28, 12],
@@ -412,10 +453,33 @@ def _scene_sheet(chart: dict[str, Any], anchors: dict[tuple[str, str], int]) -> 
                         },
                     ]
                 )
+        for claim_no, feats in _claim_groups(chart):
+            for col in cols:
+                tokens = _tokens_for_claim(feats, col, cmap)
+                if any(token == "无" for token in tokens):
+                    reading = "缺格：该权对该方案不构成落入候选。上面单格「高」只表示该特征有对应，不是整权风险"
+                elif tokens and all(token in ("强", "中") for token in tokens):
+                    reading = "全部特征均为很强或中等：全部对应，须人审。不是自由实施结论"
+                else:
+                    reading = "无未见格，但仍有偏弱：证据未对齐，须人审后才能判断是否落入"
+                rows.append(
+                    [
+                        {"v": f"权{claim_no}" if claim_no else "权项", "s": S_LABEL},
+                        {"v": claim_no, "s": S_CLAIM_NO},
+                        {"v": reading, "s": S_WRAP},
+                        {"v": col["label"] or col["id"], "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "须人审" if "须人审" in reading or "全部对应" in reading else "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                    ]
+                )
         return {
             "name": "风险清单",
             "title": "FTO 初筛 · 覆盖风险（不是自由实施结论）",
-            "subtitle": "风险由覆盖强弱映射：很强→高、中等→中、偏弱→低、未见→未见。高风险必须人审。",
+            "subtitle": "单格：很强→高、中等→中、偏弱→低、未见→未见，高风险须人审。页末按权项：任一特征未见，则该权不构成落入候选。",
             "headers": ["特征", "权号", "权要原文", "对照对象", "覆盖强弱", "风险", "人审", "缺口", "出处", "明细"],
             "rows": rows,
             "widths": [9, 7, 34, 16, 12, 10, 12, 28, 24, 12],
@@ -456,12 +520,33 @@ def _scene_sheet(chart: dict[str, Any], anchors: dict[tuple[str, str], int]) -> 
                     )
                 )
         scored.sort(key=lambda item: item[0])
+        rows = [row for _, row in scored]
+        for claim_no, feats in _claim_groups(chart):
+            for col in cols:
+                tokens = _tokens_for_claim(feats, col, cmap)
+                if tokens and all(token == "强" for token in tokens):
+                    reading = "该权每个特征均为很强：证据齐，须人审。不是侵权结论"
+                else:
+                    reading = "缺格或偏弱是待补证据，不是不侵权"
+                rows.append(
+                    [
+                        {"v": f"权{claim_no}" if claim_no else "权项", "s": S_LABEL},
+                        {"v": claim_no, "s": S_CLAIM_NO},
+                        {"v": reading, "s": S_WRAP},
+                        {"v": col["label"] or col["id"], "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                        {"v": "—", "s": S_WRAP},
+                    ]
+                )
         return {
             "name": "证据缺口",
             "title": "侵权 / EoU · 产品证据缺口（不是侵权结论）",
-            "subtitle": "弱格与未见排在前面。待补证据来自该格 missing。不构成法律意见。",
+            "subtitle": "弱格与未见排在前面，是待补证据，不是不侵权。仅当该权全部特征均为很强，页末才写「证据齐，须人审」。",
             "headers": ["特征", "权号", "权要原文", "对照对象", "覆盖强弱", "已对应", "待补证据", "出处", "明细"],
-            "rows": [row for _, row in scored],
+            "rows": rows,
             "widths": [9, 7, 34, 16, 12, 24, 28, 24, 12],
             "row_height": 28,
             "tab": "C2410C",
@@ -692,6 +777,21 @@ def _drill_anchors(chart: dict[str, Any]) -> dict[tuple[str, str], int]:
     return anchors
 
 
+def _overview_loc(chart: dict[str, Any], feature_id: str, column_id: str) -> str:
+    """总览里该特征×该对照列的强弱格。列从 D 起，数据从第 4 行起。"""
+    feats = chart.get("features") or []
+    cols = chart.get("columns") or []
+    fi = next((i for i, feat in enumerate(feats) if feat.get("feature_id") == feature_id), 0)
+    ci = next((i for i, col in enumerate(cols) if col.get("id") == column_id), 0)
+    col_no = 4 + ci
+    letters = ""
+    n = col_no
+    while n:
+        n, rem = divmod(n - 1, 26)
+        letters = chr(65 + rem) + letters
+    return f"'总览'!{letters}{4 + fi}"
+
+
 def _table_anchors(chart: dict[str, Any]) -> dict[tuple[str, str], int]:
     """对照表数据行号（每特征×对照一格一行，自第 4 行起）。"""
     anchors: dict[tuple[str, str], int] = {}
@@ -817,7 +917,7 @@ def render_xlsx_book(chart: dict[str, Any], *, title: str, subtitle: str) -> lis
                 (
                     [
                         {"v": f"{fid} × {col['id']}", "s": S_FEATURE},
-                        {"v": "返回总览", "s": S_LINK, "loc": "'总览'!A4", "label": "返回总览"},
+                        {"v": "返回总览", "s": S_LINK, "loc": _overview_loc(chart, fid, col["id"]), "label": "返回总览"},
                         {"v": "返回对照表", "s": S_LINK, "loc": f"'对照表'!A{table_row}", "label": "返回对照表"},
                     ],
                     22,
@@ -882,7 +982,7 @@ def render_xlsx_book(chart: dict[str, Any], *, title: str, subtitle: str) -> lis
             [{"v": "未见", "s": STRENGTH_BADGE["无"]}, {"v": "对照材料中未见对应原文，单元格留空", "s": S_WRAP}, {"v": "", "s": S_WRAP}, {"v": "", "s": S_WRAP}],
             [
                 {"v": "用法", "s": S_LABEL},
-                {"v": "对照表摘录按对应短语截取并着色。「同 Fk · [段号]」悬停批注可看摘录；完整原文在明细。无效见「路径备忘」，FTO 见「风险清单」，侵权见「证据缺口」，审查答复见「驳回映射」。", "s": S_WRAP},
+                {"v": "对照表摘录按对应短语截取并着色。「同 Fk · [段号]」悬停批注可看摘录；完整原文在明细。无效缺格只断该文献的单篇路径；FTO 缺格则该权不构成落入候选；侵权的弱格与未见格是待补证据，不是不侵权。可专利性缺格不是新颖性结论。", "s": S_WRAP},
                 {"v": "", "s": S_WRAP},
                 {"v": "", "s": S_WRAP},
             ],
@@ -891,15 +991,16 @@ def render_xlsx_book(chart: dict[str, Any], *, title: str, subtitle: str) -> lis
 
     extra = _scene_sheet(chart, anchors)
     scene_hint = {
-        "invalidity": "  ·  见「路径备忘」",
-        "fto": "  ·  见「风险清单」；高风险须人审",
-        "infringement": "  ·  见「证据缺口」",
+        "invalidity": "  ·  见「路径备忘」。缺格只断该文献的单篇路径",
+        "fto": "  ·  见「风险清单」。任一特征未见，则该权不构成落入候选",
+        "infringement": "  ·  见「证据缺口」。弱格与未见格是待补证据，不是不侵权",
         "oa": "  ·  见「驳回映射」；不写入意见陈述正文",
+        "patentability": "  ·  缺格只表示该文献未记载该特征，不是新颖性或创造性结论",
     }.get(chart.get("scene") or "", "")
     if chart.get("scene") == "fto":
         legend_rows.extend(
             [
-                [{"v": "高", "s": RISK_BADGE["高"]}, {"v": "产品对该特征覆盖很强，须人审（不是侵权结论）", "s": S_WRAP}, {"v": "", "s": S_WRAP}, {"v": "", "s": S_WRAP}],
+                [{"v": "高", "s": RISK_BADGE["高"]}, {"v": "该特征覆盖很强，须人审。整权是否落入看页末：缺格则不构成落入候选", "s": S_WRAP}, {"v": "", "s": S_WRAP}, {"v": "", "s": S_WRAP}],
                 [{"v": "中", "s": RISK_BADGE["中"]}, {"v": "手段对应但不完全对齐，建议人审", "s": S_WRAP}, {"v": "", "s": S_WRAP}, {"v": "", "s": S_WRAP}],
                 [{"v": "低", "s": RISK_BADGE["低"]}, {"v": "仅片段相关", "s": S_WRAP}, {"v": "", "s": S_WRAP}, {"v": "", "s": S_WRAP}],
             ]
