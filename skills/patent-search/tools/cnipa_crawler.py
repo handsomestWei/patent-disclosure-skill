@@ -205,6 +205,31 @@ _CURRENT_PAGE_JS = """() => {
     const n = Number.parseInt((el && el.textContent) || "", 10);
     return Number.isFinite(n) ? n : null;
 }"""
+# 仅取结果区文本（不含 URL/令牌）：公布站每次响应都轮换令牌，
+# 整页指纹或带 location.href 的指纹会把「同页重发」误判为翻页成功。
+_RESULT_TEXT_JS = """() => {
+    const result = document.querySelector("#result");
+    const text = result ? result.innerText.replace(/\\s+/g, " ").trim() : "";
+    return text.slice(0, 2000);
+}"""
+_ADVANCE_WAIT_JS = """(arg) => {
+    const el = document.querySelector(".current_page");
+    const n = Number.parseInt((el && el.textContent) || "", 10);
+    if (Number.isFinite(n) && arg.previousPage != null && n > arg.previousPage) return true;
+    const result = document.querySelector("#result");
+    const text = result ? result.innerText.replace(/\\s+/g, " ").trim() : "";
+    return text.slice(0, 2000) !== arg.previousText;
+}"""
+_ADVANCE_CHECK_JS = """(arg) => {
+    const el = document.querySelector(".current_page");
+    const n = Number.parseInt((el && el.textContent) || "", 10);
+    const result = document.querySelector("#result");
+    const text = result ? result.innerText.replace(/\\s+/g, " ").trim() : "";
+    return {
+        currentPage: Number.isFinite(n) ? n : null,
+        changed: text.slice(0, 2000) !== arg.previousText,
+    };
+}"""
 _PAGE_ADVANCED_JS = """(previous) => {
     const el = document.querySelector(".current_page");
     const n = Number.parseInt((el && el.textContent) || "", 10);
@@ -731,6 +756,17 @@ def _fetch_next_fragment(
     return None, last_error
 
 
+def _advance_confirmed(check: dict | None, previous_page: int | None) -> bool:
+    """只有结果区文本确已变化才算翻页成功。
+
+    页码递增不足以作为凭据：实测点击「下页」后翻页器页码会变化而
+    结果区仍是旧记录（惰性加载/令牌失效），必须看到新内容才算数。
+    """
+    if not isinstance(check, dict):
+        return False
+    return bool(check.get("changed"))
+
+
 def advance_to_next_result_page(
     page: Page,
     *,
@@ -739,36 +775,53 @@ def advance_to_next_result_page(
     retries: int = 2,
     backoff_ms: int = 1500,
 ) -> str:
-    """Advance one result page; return advanced / last_page / stalled / http_400."""
+    """Advance one result page; return advanced / last_page / stalled / http_400.
+
+    翻页成功须以「结果区文本变化」确认（页码递增不算，实测页码
+    会变而结果区仍是旧记录）；仅 URL/令牌变化不算。点击未被确认时改走保留 searchAfter 的
+    fetch 旁路，旁路取回内容仍无变化则判 stalled，杜绝同页重发被
+    记为多页（那一次 34 页只采到 3 条的根因）。
+    """
     previous_page = page.evaluate(_CURRENT_PAGE_JS)
-    previous = previous_page if previous_page is not None else page.evaluate(
-        _RESULT_FINGERPRINT_JS
-    )
+    previous_text = page.evaluate(_RESULT_TEXT_JS)
     clicked = page.evaluate(_CLICK_NEXT_PAGE_JS)
     if clicked and clicked.get("clicked"):
+        advanced = False
         try:
             page.wait_for_function(
-                _PAGE_ADVANCED_JS,
-                arg=previous,
+                _ADVANCE_WAIT_JS,
+                arg={"previousPage": previous_page, "previousText": previous_text},
                 timeout=120_000,
             )
-            _wait_result_page_ready(page)
-            return "advanced"
+            check = page.evaluate(
+                _ADVANCE_CHECK_JS,
+                {"previousPage": previous_page, "previousText": previous_text},
+            )
+            advanced = _advance_confirmed(check, previous_page)
         except (PlaywrightTimeoutError, Error):
             try:
                 page.wait_for_load_state("domcontentloaded", timeout=20_000)
             except Exception:
                 pass
             try:
-                changed = page.evaluate(_PAGE_ADVANCED_JS, previous)
+                check = page.evaluate(
+                    _ADVANCE_CHECK_JS,
+                    {"previousPage": previous_page, "previousText": previous_text},
+                )
+                advanced = _advance_confirmed(check, previous_page)
             except Exception:
-                changed = False
-            if changed is True:
-                try:
-                    _wait_result_page_ready(page)
-                except (PlaywrightTimeoutError, Error):
-                    pass
-                return "advanced"
+                advanced = False
+        if advanced:
+            try:
+                _wait_result_page_ready(page)
+            except (PlaywrightTimeoutError, Error):
+                pass
+            return "advanced"
+        print(
+            "EPUB_SEARCH_NOTE: click_not_confirmed fallback=fetch",
+            file=sys.stderr,
+            flush=True,
+        )
     if next_page_num is None or not page.query_selector("#query_form"):
         if clicked and clicked.get("clicked"):
             return "stalled"
@@ -798,6 +851,15 @@ def advance_to_next_result_page(
         }""",
         html,
     )
+    try:
+        check = page.evaluate(
+            _ADVANCE_CHECK_JS,
+            {"previousPage": previous_page, "previousText": previous_text},
+        )
+    except Exception:
+        return "stalled"
+    if not _advance_confirmed(check, previous_page):
+        return "stalled"
     return "advanced"
 
 
@@ -917,7 +979,14 @@ def collect_result_pages(
     while True:
         html = _safe_page_content(page)
         html_bytes += len(html)
-        digest = hashlib.sha256(html.encode("utf-8", errors="replace")).hexdigest()
+        page_hits = parse_search_result_html(html)
+        # 以本页解析出的记录指纹判重：公布站响应轮换令牌，整页指纹永不重复，
+        # 同页重发只能靠结果记录本身识别。
+        digest = hashlib.sha256(
+            "|".join(sorted(h.pub_number or h.title for h in page_hits)).encode(
+                "utf-8", errors="replace"
+            )
+        ).hexdigest()
         if digest in fingerprints:
             return _finish_pages(
                 hits=hits,
@@ -945,7 +1014,7 @@ def collect_result_pages(
                 total_pages=total_pages,
                 cfg=settings,
             )
-        _merge_hits(hits, parse_search_result_html(html))
+        _merge_hits(hits, page_hits)
         if pages_scanned == 1:
             first_page_hit_count = len(hits)
 
